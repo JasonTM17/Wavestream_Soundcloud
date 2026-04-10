@@ -132,7 +132,12 @@ export class PlaylistsService {
       playlist.isPublic = dto.isPublic;
     }
 
-    await this.playlistsRepository.save(playlist);
+    await this.playlistsRepository.update(playlist.id, {
+      title: playlist.title,
+      description: playlist.description,
+      coverUrl: playlist.coverUrl,
+      isPublic: playlist.isPublic,
+    });
     const fullPlaylist = await this.findPlaylistOrFail(playlist.id);
     return mapPlaylist(fullPlaylist);
   }
@@ -197,7 +202,11 @@ export class PlaylistsService {
     if (!playlist.coverUrl) {
       playlist.coverUrl = track.coverUrl;
     }
-    await this.playlistsRepository.save(playlist);
+    await this.playlistsRepository.update(playlist.id, {
+      trackCount: playlist.trackCount,
+      totalDuration: playlist.totalDuration,
+      coverUrl: playlist.coverUrl,
+    });
 
     const fullPlaylist = await this.findPlaylistOrFail(playlist.id);
     return mapPlaylist(fullPlaylist);
@@ -222,7 +231,10 @@ export class PlaylistsService {
       0,
       playlist.totalDuration - entry.track.duration,
     );
-    await this.playlistsRepository.save(playlist);
+    await this.playlistsRepository.update(playlist.id, {
+      trackCount: playlist.trackCount,
+      totalDuration: playlist.totalDuration,
+    });
 
     const remaining = await this.playlistTracksRepository.find({
       where: { playlistId: playlist.id },
