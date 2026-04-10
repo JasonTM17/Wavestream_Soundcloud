@@ -272,6 +272,7 @@ export interface RegisterRequest {
   username: string;
   password: string;
   displayName: string;
+  role?: UserRole.LISTENER | UserRole.CREATOR;
 }
 
 export const AUDIO_MIME_TYPES = [

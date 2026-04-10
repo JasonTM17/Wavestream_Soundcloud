@@ -1,10 +1,13 @@
 import {
   IsEmail,
+  IsEnum,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { UserRole } from '@wavestream/shared';
 
 export class RegisterDto {
   @IsEmail()
@@ -25,4 +28,8 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(80)
   displayName!: string;
+
+  @IsOptional()
+  @IsEnum([UserRole.LISTENER, UserRole.CREATOR])
+  role?: UserRole.LISTENER | UserRole.CREATOR;
 }

@@ -8,6 +8,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { toast } from "sonner";
+import { UserRole } from "@wavestream/shared";
 
 import { signIn, signUp } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +24,15 @@ const signInSchema = z.object({
 });
 
 const signUpSchema = z.object({
-  name: z.string().min(2, "Add a display name."),
+  displayName: z.string().min(2, "Add a display name."),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters.")
+    .max(24, "Username must be 24 characters or fewer.")
+    .regex(/^[a-z0-9-_.]+$/i, "Use letters, numbers, dash, underscore, or dot only."),
   email: z.string().email("Enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters."),
-  role: z.enum(["listener", "creator"]),
+  role: z.enum([UserRole.LISTENER, UserRole.CREATOR]),
 });
 
 type AuthFormProps = {
@@ -132,7 +138,13 @@ function SignUpForm() {
   const router = useRouter();
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", email: "", password: "", role: "listener" },
+    defaultValues: {
+      displayName: "",
+      username: "",
+      email: "",
+      password: "",
+      role: UserRole.LISTENER,
+    },
   });
 
   const mutation = useMutation({
@@ -161,10 +173,24 @@ function SignUpForm() {
     >
       <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
         <div className="space-y-2">
-          <Label htmlFor="name">Display name</Label>
-          <Input id="name" placeholder="Jordan North" {...form.register("name")} />
-          {form.formState.errors.name ? (
-            <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+          <Label htmlFor="displayName">Display name</Label>
+          <Input
+            id="displayName"
+            placeholder="Jordan North"
+            {...form.register("displayName")}
+          />
+          {form.formState.errors.displayName ? (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.displayName.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" placeholder="jordan-north" {...form.register("username")} />
+          {form.formState.errors.username ? (
+            <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>
           ) : null}
         </div>
 
@@ -198,8 +224,8 @@ function SignUpForm() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="listener">Listener</SelectItem>
-                  <SelectItem value="creator">Creator</SelectItem>
+                  <SelectItem value={UserRole.LISTENER}>Listener</SelectItem>
+                  <SelectItem value={UserRole.CREATOR}>Creator</SelectItem>
                 </SelectContent>
               </Select>
             )}

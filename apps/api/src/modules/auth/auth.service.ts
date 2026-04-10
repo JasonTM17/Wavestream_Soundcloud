@@ -73,10 +73,7 @@ export class AuthService {
       username: dto.username.toLowerCase(),
       displayName: sanitizePlainText(dto.displayName) ?? dto.displayName,
       passwordHash: await bcrypt.hash(dto.password, 10),
-      role:
-        (this.configService.get<UserRole>(
-          'app.defaultCreatorRole',
-        ) as UserRole) ?? UserRole.CREATOR,
+      role: dto.role ?? UserRole.CREATOR,
     });
 
     const savedUser = await this.usersRepository.save(user);

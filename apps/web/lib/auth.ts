@@ -1,25 +1,18 @@
+import type {
+  AuthSessionDto,
+  LoginRequest,
+  RegisterRequest,
+  UserRole,
+} from "@wavestream/shared";
+
 import { apiRequest } from "@/lib/api";
 
-export type AuthSession = {
-  accessToken: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: "listener" | "creator" | "admin";
-  };
-};
+export type AuthSession = AuthSessionDto;
 
-export type SignInInput = {
-  email: string;
-  password: string;
-};
+export type SignInInput = LoginRequest;
 
-export type SignUpInput = {
-  name: string;
-  email: string;
-  password: string;
-  role: "listener" | "creator";
+export type SignUpInput = RegisterRequest & {
+  role: UserRole.LISTENER | UserRole.CREATOR;
 };
 
 export async function signIn(input: SignInInput) {
