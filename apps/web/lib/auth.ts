@@ -23,21 +23,15 @@ export type SignUpInput = {
 };
 
 export async function signIn(input: SignInInput) {
-  return apiRequest<{ success: boolean; data: AuthSession }>(
-    "/api/auth/login",
-    {
-      method: "POST",
-      body: input,
-    },
-  );
+  return apiRequest<AuthSession>("/api/auth/login", {
+    method: "POST",
+    body: input,
+  });
 }
 
 export async function signUp(input: SignUpInput) {
-  return apiRequest<{ success: boolean; data: AuthSession }>(
-    "/api/auth/register",
-    {
-      method: "POST",
-      body: input,
-    },
-  );
+  return apiRequest<AuthSession>("/api/auth/register", {
+    method: "POST",
+    body: input,
+  });
 }

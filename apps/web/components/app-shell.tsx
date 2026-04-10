@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Compass,
+  BellRing,
   LibraryBig,
   LogOut,
   Music4,
@@ -21,7 +22,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MiniPlayer } from "@/components/player/mini-player";
-import { demoQueue, featuredArtists } from "@/lib/mock-data";
+import { useCurrentUserQuery, useNotificationsQuery } from "@/lib/wavestream-queries";
+import { usePlayerStore } from "@/lib/player-store";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -33,6 +35,11 @@ const navigation = [
 
 export function AppShell({ children }: React.PropsWithChildren) {
   const pathname = usePathname();
+  const queueLength = usePlayerStore((state) => state.queue.length);
+  const currentUser = useCurrentUserQuery();
+  const notifications = useNotificationsQuery();
+  const user = currentUser.data ?? null;
+  const unreadCount = (notifications.data ?? []).filter((item) => !item.read).length;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsla(195,92%,42%,0.12),transparent_28%),radial-gradient(circle_at_top_right,_hsla(44,92%,56%,0.14),transparent_26%),linear-gradient(180deg,var(--background),color-mix(in_hsl,var(--background),white_6%))] text-foreground">
@@ -78,9 +85,11 @@ export function AppShell({ children }: React.PropsWithChildren) {
               </nav>
 
               <div className="mt-5 rounded-[1.5rem] border border-border/70 bg-background/70 p-4">
-                <Badge variant="soft">Queue ready</Badge>
+                <Badge variant="soft">{queueLength > 0 ? "Queue ready" : "Queue empty"}</Badge>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  {demoQueue.length} demo tracks loaded, with playback state preserved across route changes.
+                  {queueLength > 0
+                    ? `${queueLength} track${queueLength === 1 ? "" : "s"} in the persistent queue.`
+                    : "Open a track and press play to build a queue that survives navigation."}
                 </p>
               </div>
             </div>
@@ -90,25 +99,44 @@ export function AppShell({ children }: React.PropsWithChildren) {
                 <div>
                   <p className="text-sm font-semibold">Featured creator</p>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    This week
+                    Account aware
                   </p>
                 </div>
                 <WandSparkles className="h-5 w-5 text-primary" />
               </div>
-              <div className="mt-4 flex items-start gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
-                    {featuredArtists[0]?.avatar ?? "WS"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{featuredArtists[0]?.name}</p>
-                  <p className="text-sm text-muted-foreground">{featuredArtists[0]?.handle}</p>
+              {user ? (
+                <div className="mt-4 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
+                        {user.displayName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user.displayName}</p>
+                      <p className="text-sm text-muted-foreground">@{user.username}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BellRing className="h-4 w-4 text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      {unreadCount} unread notification{unreadCount === 1 ? "" : "s"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Intimate synth pop with polished hooks and creator-first release tools.
-              </p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Sign in to unlock your queue, notifications, and creator analytics.
+                  </p>
+                  <Button asChild variant="outline" className="w-full justify-start rounded-2xl">
+                    <Link href="/sign-in">
+                      <LogOut className="h-4 w-4" />
+                      Sign in
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -129,8 +157,10 @@ export function AppShell({ children }: React.PropsWithChildren) {
               </div>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <Button variant="outline" size="icon" aria-label="Profile menu">
-                  <UserCircle2 className="h-4 w-4" />
+                <Button asChild variant="outline" size="icon" aria-label="Profile menu">
+                  <Link href={user ? `/artist/${user.username}` : "/sign-in"}>
+                    <UserCircle2 className="h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -193,7 +223,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
                 <div>
                   <p className="text-sm font-semibold">Account</p>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Placeholder-safe
+                    {user ? "Signed in" : "Guest mode"}
                   </p>
                 </div>
                 <DropdownMenu>
@@ -201,20 +231,31 @@ export function AppShell({ children }: React.PropsWithChildren) {
                     <Button variant="outline" size="icon" aria-label="Open account menu">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-white">
-                          WS
+                          {user ? user.displayName.slice(0, 2).toUpperCase() : "WS"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-52">
-                    <DropdownMenuLabel>WaveStream demo</DropdownMenuLabel>
+                    <DropdownMenuLabel>
+                      {user ? user.displayName : "WaveStream guest"}
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/sign-in">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign in
-                      </Link>
-                    </DropdownMenuItem>
+                    {user ? (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/artist/${user.username}`}>
+                          <UserCircle2 className="mr-2 h-4 w-4" />
+                          View profile
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem asChild>
+                        <Link href="/sign-in">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Sign in
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

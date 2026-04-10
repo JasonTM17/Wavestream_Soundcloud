@@ -17,6 +17,28 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
 
+export type ApiEnvelope<T> = {
+  success?: boolean;
+  data?: T;
+  message?: string;
+  meta?: unknown;
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object";
+
+const isApiEnvelope = <T>(value: unknown): value is ApiEnvelope<T> =>
+  isObject(value) && "success" in value && "data" in value;
+
+async function parseResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return response.json().catch(() => null);
+  }
+
+  return response.text().catch(() => "");
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -39,14 +61,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   });
 
   if (!response.ok) {
-    let details: unknown;
-    try {
-      details = await response.json();
-    } catch {
-      details = await response.text();
-    }
+    const details = await parseResponse(response);
     throw new ApiError(
-      typeof details === "object" && details && "message" in details
+      isObject(details) && "message" in details
         ? String((details as { message: string }).message)
         : `Request failed with status ${response.status}`,
       response.status,
@@ -54,5 +71,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
     );
   }
 
-  return (await response.json()) as T;
+  const payload = await parseResponse(response);
+  if (isApiEnvelope<T>(payload)) {
+    return (payload.data ?? payload) as T;
+  }
+
+  return payload as T;
 }

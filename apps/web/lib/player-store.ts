@@ -1,10 +1,10 @@
 import { create } from "zustand";
 
-import { demoQueue, type TrackPreview } from "@/lib/mock-data";
+import type { TrackCard } from "@/lib/wavestream-api";
 
 export type RepeatMode = "off" | "one" | "all";
 
-export type PlayerTrack = TrackPreview;
+export type PlayerTrack = TrackCard;
 
 type PlayerState = {
   currentTrack: PlayerTrack | null;
@@ -30,11 +30,9 @@ type PlayerState = {
   setProgress: (progress: number) => void;
 };
 
-const DEFAULT_TRACK = demoQueue[0] ?? null;
-
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: DEFAULT_TRACK,
-  queue: demoQueue,
+  currentTrack: null,
+  queue: [],
   isPlaying: false,
   volume: 0.8,
   muted: false,
@@ -43,7 +41,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeat: "off",
   progress: 18,
   duration: 218,
-  setQueue: (queue) => set({ queue, currentTrack: queue[0] ?? null }),
+  setQueue: (queue) => set({ queue, currentTrack: queue[0] ?? null, progress: 0 }),
   playTrack: (track) => set({ currentTrack: track, isPlaying: true }),
   togglePlay: () => set({ isPlaying: !get().isPlaying }),
   nextTrack: () => {
