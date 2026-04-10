@@ -19,6 +19,7 @@ import { parseBuffer } from 'music-metadata';
 import { extname } from 'path';
 import { Readable } from 'stream';
 import { In, IsNull, Repository } from 'typeorm';
+import { isUuid } from 'src/common/utils/is-uuid.util';
 import { mapComment, mapTrack } from 'src/common/utils/mappers';
 import {
   createPaginationMeta,
@@ -79,6 +80,13 @@ export class TracksService {
 
   async listTracks(query: TrackListQueryDto, viewer?: UserEntity) {
     const pagination = normalizePagination(query);
+    if (query.artistId && !isUuid(query.artistId)) {
+      return {
+        data: [],
+        meta: createPaginationMeta(0, pagination.page, pagination.limit),
+      };
+    }
+
     const qb = this.tracksRepository
       .createQueryBuilder('track')
       .leftJoinAndSelect('track.artist', 'artist')
@@ -590,7 +598,9 @@ export class TracksService {
 
   private async findTrackOrFail(idOrSlug: string) {
     const track = await this.tracksRepository.findOne({
-      where: [{ id: idOrSlug }, { slug: idOrSlug }],
+      where: isUuid(idOrSlug)
+        ? [{ id: idOrSlug }, { slug: idOrSlug }]
+        : { slug: idOrSlug },
       relations: {
         artist: { profile: true },
         genre: true,

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRole } from '@wavestream/shared';
 import { Repository } from 'typeorm';
+import { isUuid } from 'src/common/utils/is-uuid.util';
 import { mapPlaylist } from 'src/common/utils/mappers';
 import {
   createPaginationMeta,
@@ -45,6 +46,13 @@ export class PlaylistsService {
     viewer?: UserEntity,
   ) {
     const pagination = normalizePagination({ page, limit });
+    if (ownerId && !isUuid(ownerId)) {
+      return {
+        data: [],
+        meta: createPaginationMeta(0, pagination.page, pagination.limit),
+      };
+    }
+
     const qb = this.playlistsRepository
       .createQueryBuilder('playlist')
       .leftJoinAndSelect('playlist.owner', 'owner')
@@ -287,7 +295,9 @@ export class PlaylistsService {
 
   private async findPlaylistOrFail(idOrSlug: string) {
     const playlist = await this.playlistsRepository.findOne({
-      where: [{ id: idOrSlug }, { slug: idOrSlug }],
+      where: isUuid(idOrSlug)
+        ? [{ id: idOrSlug }, { slug: idOrSlug }]
+        : { slug: idOrSlug },
       relations: {
         owner: { profile: true },
         tracks: {

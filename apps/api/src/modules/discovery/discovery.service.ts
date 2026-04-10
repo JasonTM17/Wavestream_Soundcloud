@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TrackPrivacy, TrackStatus, UserRole } from '@wavestream/shared';
 import { Repository } from 'typeorm';
+import { isUuid } from 'src/common/utils/is-uuid.util';
 import {
   mapGenre,
   mapPlaylist,
@@ -224,7 +225,9 @@ export class DiscoveryService {
 
   async getRelatedTracksById(idOrSlug: string) {
     const track = await this.tracksRepository.findOne({
-      where: [{ id: idOrSlug }, { slug: idOrSlug }],
+      where: isUuid(idOrSlug)
+        ? [{ id: idOrSlug }, { slug: idOrSlug }]
+        : { slug: idOrSlug },
     });
 
     if (!track) {
