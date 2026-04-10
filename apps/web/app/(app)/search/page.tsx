@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal, Play } from "lucide-react";
+import { Play, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,15 @@ import { usePlayerStore } from "@/lib/player-store";
 import { formatCompactNumber, toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
 import { useGenresQuery, useSearchQuery } from "@/lib/wavestream-queries";
 
-const suggestionPills = ["Tracks", "Artists", "Playlists", "Genres", "Recent uploads"];
+type SearchScope = "all" | "tracks" | "artists" | "playlists" | "genres";
+
+const scopes: Array<{ value: SearchScope; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "tracks", label: "Tracks" },
+  { value: "artists", label: "Artists" },
+  { value: "playlists", label: "Playlists" },
+  { value: "genres", label: "Genres" },
+];
 
 function ResultSkeleton() {
   return (
@@ -33,6 +41,7 @@ function ResultSkeleton() {
 
 export default function SearchPage() {
   const [query, setQuery] = React.useState("");
+  const [scope, setScope] = React.useState<SearchScope>("all");
   const search = useSearchQuery(query);
   const genres = useGenresQuery();
   const setQueue = usePlayerStore((state) => state.setQueue);
@@ -55,17 +64,33 @@ export default function SearchPage() {
   const playlists = search.data?.playlists ?? [];
   const genresResults = search.data?.genres ?? genres.data ?? [];
 
+  const showTracks = scope === "all" || scope === "tracks";
+  const showArtists = scope === "all" || scope === "artists";
+  const showPlaylists = scope === "all" || scope === "playlists";
+  const showGenres = scope === "all" || scope === "genres";
+
+  const hasVisibleResults =
+    (showTracks && tracks.length > 0) ||
+    (showArtists && artists.length > 0) ||
+    (showPlaylists && playlists.length > 0) ||
+    (showGenres && genresResults.length > 0);
+
+  const applyQuickSearch = (value: string) => {
+    setScope("all");
+    setQuery(value);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Search</CardTitle>
           <CardDescription>
-            Live search covers tracks, artists, playlists, and genres. If a backend endpoint is
-            missing, the page stays readable and empty rather than falling back to fake content.
+            Live search covers tracks, artists, playlists, and genres with real client-side result
+            scopes instead of placeholder filters.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 lg:grid-cols-[1fr_auto]">
+        <CardContent className="space-y-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -75,20 +100,21 @@ export default function SearchPage() {
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <Button variant="outline" disabled>
-            <SlidersHorizontal className="h-4 w-4" />
-            Filters
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {scopes.map((item) => (
+              <Button
+                key={item.value}
+                type="button"
+                size="sm"
+                variant={scope === item.value ? "default" : "outline"}
+                onClick={() => setScope(item.value)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
         </CardContent>
       </Card>
-
-      <div className="flex flex-wrap gap-2">
-        {suggestionPills.map((filter) => (
-          <Badge key={filter} variant="outline" className="px-4 py-2 text-sm">
-            {filter}
-          </Badge>
-        ))}
-      </div>
 
       {!hasQuery ? (
         <Card className="border-dashed">
@@ -106,9 +132,9 @@ export default function SearchPage() {
         <section className="grid gap-4 xl:grid-cols-2">
           {search.isLoading ? (
             Array.from({ length: 6 }).map((_, index) => <ResultSkeleton key={index} />)
-          ) : tracks.length || artists.length || playlists.length || genresResults.length ? (
+          ) : hasVisibleResults ? (
             <>
-              {tracks.length ? (
+              {showTracks ? (
                 <Card className="xl:col-span-2">
                   <CardHeader className="flex-row items-center justify-between">
                     <div>
@@ -118,99 +144,108 @@ export default function SearchPage() {
                         {tracks.length === 1 ? "" : "s"}
                       </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={playFirstResult} disabled={!firstTrack}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={playFirstResult}
+                      disabled={!firstTrack}
+                    >
                       <Play className="h-4 w-4" />
                       Play first result
                     </Button>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
-                    {tracks.map((track, index) => {
-                      const card = toTrackCard(track);
-                      return (
+                    {tracks.length ? (
+                      tracks.map((track, index) => {
+                        const card = toTrackCard(track);
+                        return (
+                          <Link
+                            key={card.id}
+                            href={`/track/${card.slug}`}
+                            className="flex items-center gap-4 rounded-3xl border border-border/70 bg-background/70 p-4 transition hover:-translate-y-0.5 hover:border-primary/35"
+                          >
+                            <div
+                              className="h-16 w-16 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500"
+                              style={
+                                card.coverUrl
+                                  ? {
+                                      backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.2), rgba(7, 11, 24, 0.45)), url(${card.coverUrl})`,
+                                      backgroundSize: "cover",
+                                      backgroundPosition: "center",
+                                    }
+                                  : undefined
+                              }
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium">{card.title}</p>
+                              <p className="truncate text-sm text-muted-foreground">
+                                {card.artistName} | {card.genreLabel}
+                              </p>
+                              <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                {card.playsLabel} plays
+                              </p>
+                            </div>
+                            <Badge variant="soft">#{index + 1}</Badge>
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <Card className="border-dashed md:col-span-2">
+                        <CardContent className="p-6 text-sm text-muted-foreground">
+                          No tracks matched this query.
+                        </CardContent>
+                      </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {showArtists ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Artists</CardTitle>
+                    <CardDescription>Creator profiles surfaced by the search API.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {artists.length ? (
+                      artists.map((artist) => (
                         <Link
-                          key={card.id}
-                          href={`/track/${card.slug}`}
-                          className="flex items-center gap-4 rounded-3xl border border-border/70 bg-background/70 p-4 transition hover:-translate-y-0.5 hover:border-primary/35"
+                          key={artist.id}
+                          href={`/artist/${artist.username}`}
+                          className="flex items-start gap-3 rounded-3xl border border-border/70 bg-background/70 p-3 transition hover:border-primary/35"
                         >
-                          <div
-                            className="h-16 w-16 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500"
-                            style={
-                              card.coverUrl
-                                ? {
-                                    backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.2), rgba(7, 11, 24, 0.45)), url(${card.coverUrl})`,
-                                    backgroundSize: "cover",
-                                    backgroundPosition: "center",
-                                  }
-                                : undefined
-                            }
-                          />
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
+                              {artist.displayName.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{card.title}</p>
-                            <p className="truncate text-sm text-muted-foreground">
-                              {card.artistName} | {card.genreLabel}
-                            </p>
-                            <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                              {card.playsLabel} plays
+                            <p className="font-medium">{artist.displayName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              @{artist.username} | {artist.bio ?? "Creator profile"}
                             </p>
                           </div>
-                          <Badge variant="soft">#{index + 1}</Badge>
+                          <Badge variant="soft">
+                            {formatCompactNumber(artist.followerCount ?? 0)}
+                          </Badge>
                         </Link>
-                      );
-                    })}
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No artist matches.</p>
+                    )}
                   </CardContent>
                 </Card>
-              ) : (
-                <Card className="xl:col-span-2 border-dashed">
-                  <CardContent className="p-6 text-sm text-muted-foreground">
-                    No tracks matched this query.
-                  </CardContent>
-                </Card>
-              )}
+              ) : null}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Artists</CardTitle>
-                  <CardDescription>Creator profiles surfaced by the search API.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {artists.length ? (
-                    artists.map((artist) => (
-                      <Link
-                        key={artist.id}
-                        href={`/artist/${artist.username}`}
-                        className="flex items-start gap-3 rounded-3xl border border-border/70 bg-background/70 p-3 transition hover:border-primary/35"
-                      >
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
-                            {artist.displayName.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium">{artist.displayName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            @{artist.username} | {artist.bio ?? "Creator profile"}
-                          </p>
-                        </div>
-                        <Badge variant="soft">
-                          {formatCompactNumber(artist.followerCount ?? 0)}
-                        </Badge>
-                      </Link>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No artist matches.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Playlists and genres</CardTitle>
-                  <CardDescription>Supporting catalog results from the same query.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {playlists.length ? (
-                    <div className="space-y-3">
-                      {playlists.map((playlist) => {
+              {showPlaylists ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Playlists</CardTitle>
+                    <CardDescription>Collections returned by the same live query.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {playlists.length ? (
+                      playlists.map((playlist) => {
                         const card = toPlaylistCard(playlist);
                         return (
                           <Link
@@ -239,32 +274,49 @@ export default function SearchPage() {
                             <Badge variant="soft">{card.trackCount}</Badge>
                           </Link>
                         );
-                      })}
-                    </div>
-                  ) : null}
+                      })
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No playlist matches.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null}
 
-                  {genresResults.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {genresResults.map((genre) => (
-                        <Badge key={genre.id} variant="outline" className="px-4 py-2 text-sm">
+              {showGenres ? (
+                <Card className={scope === "genres" ? "xl:col-span-2" : undefined}>
+                  <CardHeader>
+                    <CardTitle>Genres</CardTitle>
+                    <CardDescription>
+                      Click a genre chip to reuse it as the current query instantly.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2">
+                    {genresResults.length ? (
+                      genresResults.map((genre) => (
+                        <Button
+                          key={genre.id}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => applyQuickSearch(genre.name)}
+                        >
                           {genre.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {!playlists.length && !genresResults.length ? (
-                    <p className="text-sm text-muted-foreground">No playlist or genre matches.</p>
-                  ) : null}
-                </CardContent>
-              </Card>
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No genre matches.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null}
             </>
           ) : (
             <Card className="xl:col-span-2 border-dashed">
               <CardContent className="space-y-2 p-6">
                 <p className="font-medium">No results found</p>
                 <p className="text-sm text-muted-foreground">
-                  Try a different query or wait for more seeded content to be added.
+                  Try a different query or switch back to <span className="font-medium">All</span>{" "}
+                  to broaden the current search.
                 </p>
               </CardContent>
             </Card>
@@ -275,14 +327,22 @@ export default function SearchPage() {
       <Card>
         <CardHeader>
           <CardTitle>Genres</CardTitle>
-          <CardDescription>Rendered from `/api/genres`, with an empty-state fallback.</CardDescription>
+          <CardDescription>
+            Quick-search chips from `/api/genres`, with an empty-state fallback.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {(genres.data ?? []).length ? (
             (genres.data ?? []).map((genre) => (
-              <Badge key={genre.id} variant="outline" className="px-4 py-2 text-sm">
+              <Button
+                key={genre.id}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => applyQuickSearch(genre.name)}
+              >
                 {genre.name}
-              </Badge>
+              </Button>
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -295,4 +355,3 @@ export default function SearchPage() {
     </div>
   );
 }
-
