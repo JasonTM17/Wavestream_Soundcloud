@@ -176,7 +176,11 @@ export function TrackForm({
     audio.src = objectUrl;
 
     return () => {
-      audio.pause();
+      try {
+        audio.pause();
+      } catch {
+        // JSDOM does not implement media playback controls.
+      }
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("error", handleError);
       URL.revokeObjectURL(objectUrl);
