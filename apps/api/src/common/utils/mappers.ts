@@ -1,6 +1,7 @@
-import { CommentDto, TrackDto, UserDto } from '@wavestream/shared';
+import { CommentDto, PlaylistDto, TrackDto, UserDto } from '@wavestream/shared';
 import { CommentEntity } from 'src/database/entities/comment.entity';
 import { GenreEntity } from 'src/database/entities/genre.entity';
+import { PlaylistEntity } from 'src/database/entities/playlist.entity';
 import { ProfileEntity } from 'src/database/entities/profile.entity';
 import { TagEntity } from 'src/database/entities/tag.entity';
 import { TrackEntity } from 'src/database/entities/track.entity';
@@ -97,4 +98,29 @@ export const mapComment = (comment: CommentEntity): CommentDto => ({
   parentId: comment.parentId,
   replies: comment.replies?.map(mapComment) ?? [],
   createdAt: comment.createdAt.toISOString(),
+});
+
+export const mapPlaylist = (
+  playlist: PlaylistEntity,
+  includeTracks = true,
+): PlaylistDto => ({
+  id: playlist.id,
+  slug: playlist.slug,
+  title: playlist.title,
+  description: playlist.description,
+  coverUrl: playlist.coverUrl,
+  isPublic: playlist.isPublic,
+  trackCount: playlist.trackCount,
+  totalDuration: playlist.totalDuration,
+  owner: mapUser(playlist.owner),
+  tracks: includeTracks
+    ? (playlist.tracks?.map((item) => ({
+        id: item.id,
+        position: item.position,
+        track: mapTrack(item.track),
+        addedAt: item.createdAt.toISOString(),
+      })) ?? [])
+    : undefined,
+  createdAt: playlist.createdAt.toISOString(),
+  updatedAt: playlist.updatedAt.toISOString(),
 });

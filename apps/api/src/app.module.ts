@@ -12,6 +12,7 @@ import { MailModule } from 'src/mail/mail.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { HealthModule } from 'src/modules/health/health.module';
 import { NotificationsModule } from 'src/modules/notifications/notifications.module';
+import { PlaylistsModule } from 'src/modules/playlists/playlists.module';
 import { TracksModule } from 'src/modules/tracks/tracks.module';
 import { UsersModule } from 'src/modules/users/users.module';
 import { StorageModule } from 'src/storage/storage.module';
@@ -34,6 +35,7 @@ import { StorageModule } from 'src/storage/storage.module';
     HealthModule,
     AuthModule,
     NotificationsModule,
+    PlaylistsModule,
     TracksModule,
     UsersModule,
   ],
