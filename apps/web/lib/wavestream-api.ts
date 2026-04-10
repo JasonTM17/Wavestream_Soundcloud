@@ -173,6 +173,43 @@ export type DiscoveryResults = {
   genres: GenreSummary[];
 };
 
+export type CreatorDashboardSummary = {
+  totalPlays: number;
+  totalLikes: number;
+  totalReposts: number;
+  totalComments: number;
+  recentListeners: Array<{
+    trackId: string;
+    trackTitle: string;
+    username: string;
+    listenedAt: string;
+  }>;
+  topTracks: Array<{
+    trackId: string;
+    title: string;
+    playCount: number;
+    likeCount: number;
+  }>;
+};
+
+export type TrackAnalyticsSummary = {
+  track: TrackSummary;
+  totalPlays: number;
+  totalLikes: number;
+  totalReposts: number;
+  totalComments: number;
+  recentListeners: Array<{
+    trackId: string;
+    trackTitle: string;
+    username: string;
+    listenedAt: string;
+  }>;
+  dailyPlays: Array<{
+    date: string;
+    plays: number;
+  }>;
+};
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 
@@ -408,3 +445,24 @@ export async function getDiscoveryResults() {
   }
 }
 
+export async function getGenres() {
+  const response = await apiGet<GenreSummary[] | { data?: GenreSummary[] }>("/api/genres");
+  return getArrayPayload<GenreSummary>(response, "data");
+}
+
+export async function getRelatedTracks(idOrSlug: string) {
+  const response = await apiGet<TrackSummary[] | { data?: TrackSummary[] }>(
+    `/api/tracks/${encodeURIComponent(idOrSlug)}/related`,
+  );
+  return getArrayPayload<TrackSummary>(response, "data");
+}
+
+export async function getCreatorDashboard() {
+  return apiGet<CreatorDashboardSummary>("/api/me/dashboard");
+}
+
+export async function getTrackAnalytics(idOrSlug: string) {
+  return apiGet<TrackAnalyticsSummary>(
+    `/api/me/tracks/${encodeURIComponent(idOrSlug)}/analytics`,
+  );
+}

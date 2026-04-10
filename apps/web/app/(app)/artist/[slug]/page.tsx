@@ -1,19 +1,89 @@
-import { ArrowLeft, CirclePlus, UserPlus2 } from "lucide-react";
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import { ArrowLeft, CirclePlus, UserPlus2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { featuredArtists, trendingTracks } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePlayerStore } from "@/lib/player-store";
+import { formatCompactNumber, toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
+import {
+  useArtistProfileQuery,
+  usePlaylistsQuery,
+  useToggleFollowMutation,
+  useTracksQuery,
+} from "@/lib/wavestream-queries";
 
 type ArtistPageProps = {
   params: { slug: string };
 };
 
+function ArtistSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-44 w-full rounded-[2rem]" />
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
+        <Skeleton className="h-96 w-full rounded-[2rem]" />
+        <Skeleton className="h-96 w-full rounded-[2rem]" />
+      </div>
+    </div>
+  );
+}
+
 export default function ArtistPage({ params }: ArtistPageProps) {
-  const artist = featuredArtists.find((item) => item.id === params.slug) ?? featuredArtists[0];
+  const profile = useArtistProfileQuery(params.slug);
+  const artist = profile.data?.user;
+  const tracksQuery = useTracksQuery({ artistUsername: params.slug, limit: 12 });
+  const playlistsQuery = usePlaylistsQuery(artist?.id);
+  const setQueue = usePlayerStore((state) => state.setQueue);
+  const playTrack = usePlayerStore((state) => state.playTrack);
+  const [following, setFollowing] = React.useState(false);
+  const followMutation = useToggleFollowMutation(artist?.id ?? "");
+
+  React.useEffect(() => {
+    setFollowing(Boolean(profile.data?.isFollowing));
+  }, [profile.data?.isFollowing]);
+
+  if (profile.isLoading) {
+    return <ArtistSkeleton />;
+  }
+
+  if (profile.isError || !artist) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 p-8">
+          <p className="text-lg font-semibold">Artist not found</p>
+          <p className="text-sm text-muted-foreground">
+            The creator profile may still be private, unseeded, or unavailable from the backend.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/discover">
+              <ArrowLeft className="h-4 w-4" />
+              Back to discovery
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const trackCards = (tracksQuery.data ?? []).map(toTrackCard);
+  const playlistCards = (playlistsQuery.data ?? []).map(toPlaylistCard);
+
+  const playAll = () => {
+    if (!trackCards.length) {
+      return;
+    }
+
+    setQueue(trackCards);
+    playTrack(trackCards[0]);
+  };
 
   return (
     <div className="space-y-6">
@@ -29,23 +99,36 @@ export default function ArtistPage({ params }: ArtistPageProps) {
         <CardContent className="-mt-20 grid gap-6 lg:grid-cols-[auto_1fr_auto]">
           <Avatar className="h-28 w-28 border-4 border-background shadow-2xl">
             <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-2xl text-white">
-              {artist.avatar}
+              {artist.displayName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="space-y-3 pt-8">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="soft">Creator profile</Badge>
-              <Badge variant="outline">{artist.followers} followers</Badge>
+              <Badge variant="outline">{formatCompactNumber(artist.followerCount)} followers</Badge>
             </div>
-            <h1 className="text-4xl font-semibold tracking-tight">{artist.name}</h1>
-            <p className="max-w-2xl text-muted-foreground">{artist.bio}</p>
+            <h1 className="text-4xl font-semibold tracking-tight">{artist.displayName}</h1>
+            <p className="max-w-2xl text-muted-foreground">
+              {artist.bio ?? "Creator profile data is streamed live from the backend."}
+            </p>
           </div>
           <div className="flex items-start gap-3 pt-8">
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFollowing((value) => !value);
+                followMutation.mutate(!following, {
+                  onError: (error) => {
+                    setFollowing((value) => !value);
+                    toast.error(error instanceof Error ? error.message : "Failed to update follow.");
+                  },
+                });
+              }}
+            >
               <UserPlus2 className="h-4 w-4" />
-              Follow
+              {following ? "Following" : "Follow"}
             </Button>
-            <Button>
+            <Button onClick={playAll} disabled={!trackCards.length}>
               <CirclePlus className="h-4 w-4" />
               Add to queue
             </Button>
@@ -57,22 +140,60 @@ export default function ArtistPage({ params }: ArtistPageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Uploaded tracks</CardTitle>
-            <CardDescription>Placeholder detail list for future creator uploads and reposts.</CardDescription>
+            <CardDescription>
+              This list is backed by the live tracks endpoint and remains empty if the API has not
+              been seeded yet.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {trendingTracks.map((track, index) => (
-              <div key={track.id} className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <div className="flex items-center gap-4">
+            {tracksQuery.isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-20 w-full rounded-3xl" />
+              ))
+            ) : trackCards.length ? (
+              trackCards.map((track, index) => (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => {
+                    setQueue(trackCards);
+                    playTrack(track);
+                  }}
+                  className="flex w-full items-center gap-4 rounded-3xl border border-border/70 bg-background/70 p-4 text-left transition hover:border-primary/35"
+                >
                   <Badge variant="soft">#{index + 1}</Badge>
-                  <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${track.cover}`} />
+                  <div
+                    className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500"
+                    style={
+                      track.coverUrl
+                        ? {
+                            backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.18), rgba(7, 11, 24, 0.45)), url(${track.coverUrl})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }
+                        : undefined
+                    }
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{track.title}</p>
-                    <p className="truncate text-sm text-muted-foreground">{track.genre} · {track.plays} plays</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {track.genreLabel} | {track.playsLabel} plays
+                    </p>
                   </div>
-                  <Badge variant="outline">{track.duration}</Badge>
-                </div>
-              </div>
-            ))}
+                  <Badge variant="outline">{track.durationLabel}</Badge>
+                </button>
+              ))
+            ) : (
+              <Card className="border-dashed bg-background/60">
+                <CardContent className="space-y-2 p-6">
+                  <p className="font-medium">No tracks yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Creator uploads will show up here once the backend has demo content or live
+                    publishes.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
 
@@ -90,7 +211,7 @@ export default function ArtistPage({ params }: ArtistPageProps) {
               ].map(([label, value]) => (
                 <div key={label as string} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{label}</span>
+                    <span>{label as string}</span>
                     <span className="text-muted-foreground">{value as number}%</span>
                   </div>
                   <Progress value={value as number} />
@@ -102,19 +223,32 @@ export default function ArtistPage({ params }: ArtistPageProps) {
           <Card>
             <CardHeader>
               <CardTitle>Playlists and reposts</CardTitle>
-              <CardDescription>Future home for collaborative curation.</CardDescription>
+              <CardDescription>Public playlists owned by this creator.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {[
-                ["Midnight Loop", "24 tracks"],
-                ["Signal Boost", "18 tracks"],
-                ["Soft Focus", "31 tracks"],
-              ].map(([name, tracks]) => (
-                <div key={name} className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/70 px-4 py-3">
-                  <span className="font-medium">{name}</span>
-                  <Badge variant="soft">{tracks}</Badge>
-                </div>
-              ))}
+              {playlistsQuery.isLoading ? (
+                Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-20 w-full rounded-3xl" />
+                ))
+              ) : playlistCards.length ? (
+                playlistCards.map((playlist) => (
+                  <Link
+                    key={playlist.id}
+                    href={`/playlist/${playlist.slug}`}
+                    className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/70 px-4 py-3 transition hover:border-primary/35"
+                  >
+                    <div>
+                      <p className="font-medium">{playlist.title}</p>
+                      <p className="text-sm text-muted-foreground">{playlist.description}</p>
+                    </div>
+                    <Badge variant="soft">{playlist.trackCount} tracks</Badge>
+                  </Link>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No playlists were returned for this creator.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -122,3 +256,4 @@ export default function ArtistPage({ params }: ArtistPageProps) {
     </div>
   );
 }
+

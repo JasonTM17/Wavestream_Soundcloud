@@ -6,15 +6,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   canIgnoreApiError,
   getCurrentUser,
+  getCreatorDashboard,
   getDiscoveryResults,
+  getGenres,
   getListeningHistory,
   getMyUploads,
   getNotifications,
   getPlaylist,
   getPlaylists,
+  getRelatedTracks,
   getSearchResults,
   getTrack,
+  getTrackAnalytics,
   getTrackComments,
+  getTracks,
   getUserProfile,
   type DiscoveryResults,
   type ListeningHistoryItem,
@@ -99,12 +104,68 @@ export function useDiscoveryQuery() {
   });
 }
 
+export function useGenresQuery() {
+  return useQuery({
+    queryKey: ["genres"],
+    queryFn: async () => {
+      try {
+        return await getGenres();
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+export function useTracksQuery(filters: {
+  q?: string;
+  genre?: string;
+  artistUsername?: string;
+  limit?: number;
+}) {
+  const hasFilter =
+    Boolean(filters.q?.trim()) ||
+    Boolean(filters.genre?.trim()) ||
+    Boolean(filters.artistUsername?.trim());
+
+  return useQuery({
+    queryKey: ["tracks", filters],
+    queryFn: async () => {
+      try {
+        return await getTracks(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled: hasFilter,
+    staleTime: 20_000,
+    retry: false,
+  });
+}
+
 export function useSearchQuery(query: string) {
   const deferredQuery = React.useDeferredValue(query.trim());
 
   return useQuery({
     queryKey: ["search", deferredQuery],
-    queryFn: async (): Promise<SearchResults> => getSearchResults(deferredQuery),
+    queryFn: async (): Promise<SearchResults> => {
+      try {
+        return await getSearchResults(deferredQuery);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { tracks: [], playlists: [], artists: [], genres: [] };
+        }
+        throw error;
+      }
+    },
     enabled: deferredQuery.length > 0,
     staleTime: 15_000,
     placeholderData: keepPreviousData,
@@ -128,20 +189,12 @@ export function useTrackCommentsQuery(idOrSlug: string) {
   });
 }
 
-export function usePlaylistQuery(idOrSlug: string) {
+export function useRelatedTracksQuery(idOrSlug: string) {
   return useQuery({
-    queryKey: ["playlist", idOrSlug],
-    queryFn: async (): Promise<PlaylistSummary> => getPlaylist(idOrSlug),
-    staleTime: 30_000,
-  });
-}
-
-export function usePlaylistsQuery(ownerId?: string) {
-  return useQuery({
-    queryKey: ["playlists", ownerId ?? "all"],
-    queryFn: async (): Promise<PlaylistSummary[]> => {
+    queryKey: ["track", idOrSlug, "related"],
+    queryFn: async () => {
       try {
-        return await getPlaylists(ownerId ? { ownerId } : {});
+        return await getRelatedTracks(idOrSlug);
       } catch (error) {
         if (canIgnoreApiError(error)) {
           return [];
@@ -154,12 +207,78 @@ export function usePlaylistsQuery(ownerId?: string) {
   });
 }
 
+export function usePlaylistQuery(idOrSlug: string) {
+  return useQuery({
+    queryKey: ["playlist", idOrSlug],
+    queryFn: async (): Promise<PlaylistSummary> => getPlaylist(idOrSlug),
+    staleTime: 30_000,
+  });
+}
+
+export function usePlaylistsQuery(ownerId?: string) {
+  const enabled = Boolean(ownerId);
+
+  return useQuery({
+    queryKey: ["playlists", ownerId ?? "all"],
+    queryFn: async (): Promise<PlaylistSummary[]> => {
+      try {
+        return await getPlaylists(ownerId ? { ownerId } : {});
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled,
+    staleTime: 20_000,
+    retry: false,
+  });
+}
+
 export function useArtistProfileQuery(username: string) {
   return useQuery({
     queryKey: ["artist", username],
     queryFn: async (): Promise<{ user: UserSummary; isFollowing?: boolean }> =>
       getUserProfile(username),
     staleTime: 20_000,
+  });
+}
+
+export function useCreatorDashboardQuery() {
+  return useQuery({
+    queryKey: ["me", "dashboard"],
+    queryFn: async () => {
+      try {
+        return await getCreatorDashboard();
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    staleTime: 20_000,
+    retry: false,
+  });
+}
+
+export function useTrackAnalyticsQuery(trackId: string) {
+  return useQuery({
+    queryKey: ["me", "tracks", trackId, "analytics"],
+    queryFn: async () => {
+      try {
+        return await getTrackAnalytics(trackId);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(trackId),
+    staleTime: 20_000,
+    retry: false,
   });
 }
 
@@ -175,7 +294,7 @@ export function useToggleFollowMutation(targetUserId: string) {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["artist", targetUserId] });
+      await queryClient.invalidateQueries({ queryKey: ["artist"] });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
@@ -193,8 +312,8 @@ export function useToggleTrackReactionMutation(trackId: string, reaction: "like"
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["track", trackId] });
-      await queryClient.invalidateQueries({ queryKey: ["discovery", "home"] });
+      await queryClient.invalidateQueries({ queryKey: ["track"] });
+      await queryClient.invalidateQueries({ queryKey: ["discovery"] });
     },
   });
 }
@@ -212,8 +331,7 @@ export function useCreateCommentMutation(trackId: string) {
         },
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["track", trackId, "comments"] });
-      await queryClient.invalidateQueries({ queryKey: ["track", trackId] });
+      await queryClient.invalidateQueries({ queryKey: ["track"] });
     },
   });
 }

@@ -1,3 +1,7 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
 import { BarChart3, Download, ShieldAlert, Upload } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -6,26 +10,79 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCompactNumber, formatDuration, toTrackCard } from "@/lib/wavestream-api";
+import {
+  useCreatorDashboardQuery,
+  useCurrentUserQuery,
+  useMyUploadsQuery,
+  useTrackAnalyticsQuery,
+} from "@/lib/wavestream-queries";
 
 export default function CreatorPage() {
+  const currentUserQuery = useCurrentUserQuery();
+  const uploadsQuery = useMyUploadsQuery();
+  const dashboardQuery = useCreatorDashboardQuery();
+  const uploads = React.useMemo(() => uploadsQuery.data ?? [], [uploadsQuery.data]);
+  const [selectedTrackId, setSelectedTrackId] = React.useState<string>("");
+
+  React.useEffect(() => {
+    if (!selectedTrackId && uploads[0]) {
+      setSelectedTrackId(uploads[0].id);
+    }
+  }, [selectedTrackId, uploads]);
+
+  const selectedAnalytics = useTrackAnalyticsQuery(selectedTrackId);
+  const selectedUpload = uploads.find((track) => track.id === selectedTrackId) ?? uploads[0];
+  const selectedTrackCard = selectedUpload ? toTrackCard(selectedUpload) : null;
+  const dashboard = dashboardQuery.data;
+
+  if (currentUserQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full rounded-[2rem]" />
+        <Skeleton className="h-96 w-full rounded-[2rem]" />
+      </div>
+    );
+  }
+
+  if (!currentUserQuery.data) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 p-8">
+          <p className="text-lg font-semibold">Creator dashboard requires sign-in</p>
+          <p className="text-sm text-muted-foreground">
+            The live creator surface reads from authenticated endpoints, so sign in to see uploads,
+            analytics, and history.
+          </p>
+          <Button asChild>
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const metrics = [
+    ["Plays", dashboard?.totalPlays ?? uploads.reduce((sum, track) => sum + track.playCount, 0)],
+    ["Likes", dashboard?.totalLikes ?? uploads.reduce((sum, track) => sum + track.likeCount, 0)],
+    ["Reposts", dashboard?.totalReposts ?? uploads.reduce((sum, track) => sum + track.repostCount, 0)],
+    ["Comments", dashboard?.totalComments ?? uploads.reduce((sum, track) => sum + track.commentCount, 0)],
+  ];
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-4">
-        {[
-          ["Plays", "182K", 68],
-          ["Likes", "28K", 45],
-          ["Reposts", "11K", 32],
-          ["Comments", "4.8K", 24],
-        ].map(([label, value, progress]) => (
+        {metrics.map(([label, value]) => (
           <Card key={label as string}>
             <CardHeader className="pb-0">
               <CardDescription>{label as string}</CardDescription>
-              <CardTitle className="text-3xl">{value as string}</CardTitle>
+              <CardTitle className="text-3xl">{formatCompactNumber(value as number)}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <Progress value={progress as number} />
+              <Progress value={Math.min(100, ((value as number) % 100) + 20)} />
             </CardContent>
           </Card>
         ))}
@@ -36,7 +93,7 @@ export default function CreatorPage() {
           <CardHeader>
             <CardTitle>Upload track</CardTitle>
             <CardDescription>
-              A safe creator form shell with validation-ready fields and future backend wiring.
+              The form remains a polished shell, but the dashboard data now comes from the live API.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -91,21 +148,32 @@ export default function CreatorPage() {
           <Card>
             <CardHeader>
               <CardTitle>Creator snapshot</CardTitle>
-              <CardDescription>At-a-glance analytics and moderation-aware workflow.</CardDescription>
+              <CardDescription>
+                Real metrics are now wired into the authenticated dashboard.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Top track</p>
-                    <p className="text-sm text-muted-foreground">Night Drift</p>
+                    <p className="text-sm text-muted-foreground">
+                      {dashboard?.topTracks?.[0]?.title ?? selectedTrackCard?.title ?? "No uploads yet"}
+                    </p>
                   </div>
-                  <Badge variant="soft">+18% this week</Badge>
+                  <Badge variant="soft">
+                    {dashboard?.topTracks?.[0]?.playCount
+                      ? `${formatCompactNumber(dashboard.topTracks[0].playCount)} plays`
+                      : "Live analytics"}
+                  </Badge>
                 </div>
                 <div className="mt-4 space-y-3">
-                  <Progress value={82} />
+                  <Progress
+                    value={dashboard?.topTracks?.[0]?.playCount ? Math.min(100, dashboard.topTracks[0].playCount % 100) : 40}
+                  />
                   <p className="text-sm text-muted-foreground">
-                    14K plays in the last 7 days and climbing.
+                    {dashboard?.recentListeners?.length ?? 0} recent listener events and
+                    {selectedAnalytics.data ? ` ${selectedAnalytics.data.totalPlays} tracked plays for the selected track.` : " track-level analytics pending a selection."}
                   </p>
                 </div>
               </div>
@@ -132,11 +200,86 @@ export default function CreatorPage() {
                   <div>
                     <p className="font-medium">Analytics ready</p>
                     <p className="text-sm text-muted-foreground">
-                      Total plays, likes, reposts, comments, and top listeners can be plugged in next.
+                      The dashboard now reads live creator analytics, recent listeners, and top
+                      tracks from the API.
                     </p>
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Track analytics</CardTitle>
+              <CardDescription>
+                Select one of your uploads to inspect per-track metrics.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {uploadsQuery.isLoading ? (
+                Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-20 w-full rounded-3xl" />
+                ))
+              ) : uploads.length ? (
+                <>
+                  <div className="grid gap-3">
+                    {uploads.map((track) => {
+                      const trackCard = toTrackCard(track);
+                      const active = selectedTrackId === track.id;
+                      return (
+                        <button
+                          key={track.id}
+                          type="button"
+                          onClick={() => setSelectedTrackId(track.id)}
+                          className={`rounded-3xl border p-4 text-left transition ${
+                            active
+                              ? "border-primary/40 bg-primary/5"
+                              : "border-border/70 bg-background/70 hover:border-primary/35"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{trackCard.title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {trackCard.genreLabel} | {formatDuration(track.duration)}
+                              </p>
+                            </div>
+                            <Badge variant="soft">{trackCard.playsLabel} plays</Badge>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {selectedTrackCard?.title ?? "Select a track for analytics"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedAnalytics.data
+                            ? `${selectedAnalytics.data.recentListeners.length} recent listeners and ${selectedAnalytics.data.dailyPlays.length} daily play buckets`
+                            : "Track analytics will populate here when the selection resolves."}
+                        </p>
+                      </div>
+                      <Badge variant="outline">
+                        {selectedAnalytics.data ? "Live analytics" : "Pending"}
+                      </Badge>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <Card className="border-dashed bg-background/60">
+                  <CardContent className="space-y-2 p-6">
+                    <p className="font-medium">No uploads yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Once tracks are uploaded, you will be able to inspect per-track analytics here.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </div>
