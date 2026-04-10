@@ -7,9 +7,13 @@ import type { AuthSessionDto, UserDto } from "@wavestream/shared";
 import { useAuthActions, useAuthSession } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import {
+  addTrackToPlaylist,
   buildCreateTrackFormData,
   buildUpdateTrackPayload,
+  createPlaylist,
   canIgnoreApiError,
+  deletePlaylist,
+  getMyPlaylists,
   getCurrentUser,
   getCreatorDashboard,
   getDiscoveryResults,
@@ -27,15 +31,23 @@ import {
   getTracks,
   getUserProfile,
   type CreateTrackInput,
+  type AddTrackToPlaylistInput,
+  type CreatePlaylistInput,
   type DiscoveryResults,
   type DeleteTrackResult,
+  type DeletePlaylistResult,
   type ListeningHistoryItem,
   type NotificationSummary,
   type PlaylistSummary,
   type SearchResults,
+  type ReorderPlaylistTracksInput,
   type TrackSummary,
   type UpdateTrackInput,
+  type UpdatePlaylistInput,
   type UserSummary,
+  removeTrackFromPlaylist,
+  reorderPlaylistTracks,
+  updatePlaylist,
 } from "@/lib/wavestream-api";
 import { apiRequest } from "@/lib/api";
 
@@ -356,6 +368,27 @@ export function useTrackAnalyticsQuery(trackId: string) {
   });
 }
 
+export function useMyPlaylistsQuery() {
+  const { isAuthenticated } = useAuthSession();
+
+  return useQuery({
+    queryKey: ["playlists", "me"],
+    queryFn: async (): Promise<PlaylistSummary[]> => {
+      try {
+        return await getMyPlaylists();
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 20_000,
+    retry: false,
+  });
+}
+
 const invalidateTrackMutationQueries = async (
   queryClient: ReturnType<typeof useQueryClient>,
   trackIdOrSlug?: string,
@@ -379,6 +412,35 @@ const invalidateTrackMutationQueries = async (
       queryClient.invalidateQueries({
         queryKey: ["me", "tracks", trackIdOrSlug, "analytics"],
       }),
+    );
+  }
+
+  await Promise.all(invalidations);
+};
+
+const invalidatePlaylistMutationQueries = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+  playlistIdOrSlug?: string,
+  trackIdOrSlug?: string,
+) => {
+  const invalidations = [
+    queryClient.invalidateQueries({ queryKey: ["playlists"] }),
+    queryClient.invalidateQueries({ queryKey: ["playlist"] }),
+    queryClient.invalidateQueries({ queryKey: ["discovery", "home"] }),
+    queryClient.invalidateQueries({ queryKey: ["artist"] }),
+    queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  ];
+
+  if (playlistIdOrSlug) {
+    invalidations.push(
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistIdOrSlug] }),
+    );
+  }
+
+  if (trackIdOrSlug) {
+    invalidations.push(
+      queryClient.invalidateQueries({ queryKey: ["track", trackIdOrSlug] }),
+      queryClient.invalidateQueries({ queryKey: ["track"] }),
     );
   }
 
@@ -428,6 +490,86 @@ export function useDeleteTrackMutation(trackIdOrSlug: string) {
       }),
     onSuccess: async () => {
       await invalidateTrackMutationQueries(queryClient, trackIdOrSlug);
+    },
+  });
+}
+
+export function useCreatePlaylistMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreatePlaylistInput): Promise<PlaylistSummary> =>
+      createPlaylist(input),
+    onSuccess: async (playlist) => {
+      await invalidatePlaylistMutationQueries(queryClient, playlist.id);
+    },
+  });
+}
+
+export function useUpdatePlaylistMutation(playlistIdOrSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdatePlaylistInput): Promise<PlaylistSummary> =>
+      updatePlaylist(playlistIdOrSlug, input),
+    onSuccess: async (playlist) => {
+      await invalidatePlaylistMutationQueries(queryClient, playlist.id ?? playlistIdOrSlug);
+    },
+  });
+}
+
+export function useDeletePlaylistMutation(playlistIdOrSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<DeletePlaylistResult> =>
+      deletePlaylist(playlistIdOrSlug),
+    onSuccess: async () => {
+      await invalidatePlaylistMutationQueries(queryClient, playlistIdOrSlug);
+    },
+  });
+}
+
+export function useAddTrackToPlaylistMutation(playlistIdOrSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: AddTrackToPlaylistInput): Promise<PlaylistSummary> =>
+      addTrackToPlaylist(playlistIdOrSlug, input),
+    onSuccess: async (playlist, variables) => {
+      await invalidatePlaylistMutationQueries(
+        queryClient,
+        playlist.id ?? playlistIdOrSlug,
+        variables.trackId,
+      );
+    },
+  });
+}
+
+export function useRemoveTrackFromPlaylistMutation(playlistIdOrSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (trackId: string): Promise<PlaylistSummary> =>
+      removeTrackFromPlaylist(playlistIdOrSlug, trackId),
+    onSuccess: async (playlist, trackId) => {
+      await invalidatePlaylistMutationQueries(
+        queryClient,
+        playlist.id ?? playlistIdOrSlug,
+        trackId,
+      );
+    },
+  });
+}
+
+export function useReorderPlaylistTracksMutation(playlistIdOrSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ReorderPlaylistTracksInput): Promise<PlaylistSummary> =>
+      reorderPlaylistTracks(playlistIdOrSlug, input),
+    onSuccess: async (playlist) => {
+      await invalidatePlaylistMutationQueries(queryClient, playlist.id ?? playlistIdOrSlug);
     },
   });
 }

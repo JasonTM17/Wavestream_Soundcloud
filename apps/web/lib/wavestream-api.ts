@@ -121,6 +121,32 @@ export type PlaylistSummary = {
   updatedAt?: string;
 };
 
+export type CreatePlaylistInput = {
+  title: string;
+  description?: string | null;
+  coverUrl?: string | null;
+  isPublic?: boolean;
+};
+
+export type UpdatePlaylistInput = {
+  title?: string;
+  description?: string | null;
+  coverUrl?: string | null;
+  isPublic?: boolean;
+};
+
+export type AddTrackToPlaylistInput = {
+  trackId: string;
+};
+
+export type ReorderPlaylistTracksInput = {
+  trackIds: string[];
+};
+
+export type DeletePlaylistResult = {
+  deleted: boolean;
+};
+
 export type PlaylistCard = {
   id: string;
   slug: string;
@@ -406,6 +432,14 @@ export async function getPlaylist(idOrSlug: string) {
   return apiGet<PlaylistSummary>(`/api/playlists/${encodeURIComponent(idOrSlug)}`, "optional");
 }
 
+export async function getMyPlaylists() {
+  const response = await apiGet<PlaylistSummary[] | { data?: PlaylistSummary[] }>(
+    "/api/playlists/me",
+    "required",
+  );
+  return getArrayPayload<PlaylistSummary>(response, "data");
+}
+
 export async function getPlaylists(query: { ownerId?: string; limit?: number } = {}) {
   const params = new URLSearchParams();
   if (query.ownerId) params.set("ownerId", query.ownerId);
@@ -557,4 +591,59 @@ export function buildUpdateTrackPayload(input: UpdateTrackInput) {
   if (input.commentsEnabled !== undefined) payload.commentsEnabled = input.commentsEnabled;
 
   return payload;
+}
+
+export async function createPlaylist(input: CreatePlaylistInput) {
+  return apiRequest<PlaylistSummary>("/api/playlists", {
+    method: "POST",
+    auth: "required",
+    body: input,
+  });
+}
+
+export async function updatePlaylist(idOrSlug: string, input: UpdatePlaylistInput) {
+  return apiRequest<PlaylistSummary>(`/api/playlists/${encodeURIComponent(idOrSlug)}`, {
+    method: "PATCH",
+    auth: "required",
+    body: input,
+  });
+}
+
+export async function deletePlaylist(idOrSlug: string) {
+  return apiRequest<DeletePlaylistResult>(`/api/playlists/${encodeURIComponent(idOrSlug)}`, {
+    method: "DELETE",
+    auth: "required",
+  });
+}
+
+export async function addTrackToPlaylist(idOrSlug: string, input: AddTrackToPlaylistInput) {
+  return apiRequest<PlaylistSummary>(`/api/playlists/${encodeURIComponent(idOrSlug)}/tracks`, {
+    method: "POST",
+    auth: "required",
+    body: input,
+  });
+}
+
+export async function removeTrackFromPlaylist(idOrSlug: string, trackId: string) {
+  return apiRequest<PlaylistSummary>(
+    `/api/playlists/${encodeURIComponent(idOrSlug)}/tracks/${encodeURIComponent(trackId)}`,
+    {
+      method: "DELETE",
+      auth: "required",
+    },
+  );
+}
+
+export async function reorderPlaylistTracks(
+  idOrSlug: string,
+  input: ReorderPlaylistTracksInput,
+) {
+  return apiRequest<PlaylistSummary>(
+    `/api/playlists/${encodeURIComponent(idOrSlug)}/tracks/reorder`,
+    {
+      method: "PATCH",
+      auth: "required",
+      body: input,
+    },
+  );
 }
