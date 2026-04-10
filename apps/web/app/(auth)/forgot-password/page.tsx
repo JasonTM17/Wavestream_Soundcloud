@@ -1,16 +1,21 @@
 import { AuthForm } from "@/components/auth/auth-form";
 import { getFirstQueryValue } from "@/lib/auth-routing";
 
-type SignUpPageProps = {
+type ForgotPasswordPageProps = {
   searchParams?: Promise<{
     next?: string | string[] | null;
   }>;
 };
 
-export default async function SignUpPage({ searchParams }: SignUpPageProps) {
+export default async function ForgotPasswordPage({
+  searchParams,
+}: ForgotPasswordPageProps) {
   const resolvedSearchParams = await searchParams;
 
   return (
-    <AuthForm mode="sign-up" nextPath={getFirstQueryValue(resolvedSearchParams?.next)} />
+    <AuthForm
+      mode="forgot-password"
+      nextPath={getFirstQueryValue(resolvedSearchParams?.next)}
+    />
   );
 }

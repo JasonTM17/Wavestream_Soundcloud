@@ -2,21 +2,32 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { UserRole } from "@wavestream/shared";
 import { z } from "zod";
 import { toast } from "sonner";
-import { UserRole } from "@wavestream/shared";
 
-import { signIn, signUp } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  buildAuthHref,
+  getFirstQueryValue,
+  resolveAuthRedirect,
+} from "@/lib/auth-routing";
+import {
+  forgotPassword,
+  resetPassword,
+  signIn,
+  signUp,
+  type AuthSession,
+} from "@/lib/auth";
 
 const signInSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -35,18 +46,55 @@ const signUpSchema = z.object({
   role: z.enum([UserRole.LISTENER, UserRole.CREATOR]),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Enter a valid email address."),
+});
+
+const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Reset token is required."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(8, "Confirm your password."),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 type AuthFormProps = {
-  mode: "sign-in" | "sign-up";
+  mode: "sign-in" | "sign-up" | "forgot-password" | "reset-password";
+  nextPath?: string | string[] | null;
+  resetToken?: string | string[] | null;
+  onAuthenticatedSession?: (session: AuthSession) => void;
 };
 
 type SignInValues = z.infer<typeof signInSchema>;
 type SignUpValues = z.infer<typeof signUpSchema>;
+type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-export function AuthForm({ mode }: AuthFormProps) {
-  return mode === "sign-in" ? <SignInForm /> : <SignUpForm />;
+export function AuthForm({
+  mode,
+  nextPath,
+  resetToken,
+  onAuthenticatedSession,
+}: AuthFormProps) {
+  if (mode === "sign-in") {
+    return <SignInForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
+  }
+
+  if (mode === "sign-up") {
+    return <SignUpForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
+  }
+
+  if (mode === "forgot-password") {
+    return <ForgotPasswordForm nextPath={nextPath} />;
+  }
+
+  return <ResetPasswordForm nextPath={nextPath} resetToken={resetToken} />;
 }
 
-function AuthCard({
+export function AuthCard({
   title,
   description,
   footer,
@@ -78,7 +126,10 @@ function AuthCard({
   );
 }
 
-function SignInForm() {
+function SignInForm({
+  nextPath,
+  onAuthenticatedSession,
+}: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
   const router = useRouter();
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -87,9 +138,10 @@ function SignInForm() {
 
   const mutation = useMutation({
     mutationFn: signIn,
-    onSuccess: () => {
+    onSuccess: (session) => {
+      onAuthenticatedSession?.(session);
       toast.success("Welcome back to WaveStream.");
-      router.push("/discover");
+      router.replace(resolveAuthRedirect(nextPath));
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Something went wrong.");
@@ -99,12 +151,22 @@ function SignInForm() {
   return (
     <AuthCard
       title="Sign in to your studio"
-      description="Continue with your creator or listener account. The frontend is wired safely even before the backend lands."
+      description="Continue with your listener or creator account. The session runtime can hydrate from this payload as soon as it lands."
       footer={
         <>
           New here?{" "}
-          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/sign-up">
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            href={buildAuthHref("/sign-up", nextPath)}
+          >
             Create an account
+          </Link>
+          {" | "}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            href={buildAuthHref("/forgot-password", nextPath)}
+          >
+            Forgot password?
           </Link>
         </>
       }
@@ -119,7 +181,15 @@ function SignInForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="password">Password</Label>
+            <Link
+              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              href={buildAuthHref("/forgot-password", nextPath)}
+            >
+              Recovery link
+            </Link>
+          </div>
           <Input id="password" type="password" placeholder="********" {...form.register("password")} />
           {form.formState.errors.password ? (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
@@ -134,7 +204,10 @@ function SignInForm() {
   );
 }
 
-function SignUpForm() {
+function SignUpForm({
+  nextPath,
+  onAuthenticatedSession,
+}: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
   const router = useRouter();
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
@@ -149,9 +222,10 @@ function SignUpForm() {
 
   const mutation = useMutation({
     mutationFn: signUp,
-    onSuccess: () => {
+    onSuccess: (session) => {
+      onAuthenticatedSession?.(session);
       toast.success("Account created.");
-      router.push("/discover");
+      router.replace(resolveAuthRedirect(nextPath));
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Something went wrong.");
@@ -161,11 +235,14 @@ function SignUpForm() {
   return (
     <AuthCard
       title="Create your WaveStream profile"
-      description="Join with a listener or creator profile. All validation runs locally and stays compile-safe."
+      description="Join with a listener or creator profile. Validation runs locally and the returned session is ready for the upcoming auth runtime."
       footer={
         <>
           Already have an account?{" "}
-          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href="/sign-in">
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            href={buildAuthHref("/sign-in", nextPath)}
+          >
             Sign in
           </Link>
         </>
@@ -174,11 +251,7 @@ function SignUpForm() {
       <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
         <div className="space-y-2">
           <Label htmlFor="displayName">Display name</Label>
-          <Input
-            id="displayName"
-            placeholder="Jordan North"
-            {...form.register("displayName")}
-          />
+          <Input id="displayName" placeholder="Jordan North" {...form.register("displayName")} />
           {form.formState.errors.displayName ? (
             <p className="text-sm text-destructive">
               {form.formState.errors.displayName.message}
@@ -237,6 +310,165 @@ function SignUpForm() {
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? "Creating..." : "Create account"}
+        </Button>
+      </form>
+    </AuthCard>
+  );
+}
+
+function ForgotPasswordForm({ nextPath }: Pick<AuthFormProps, "nextPath">) {
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
+
+  const mutation = useMutation({
+    mutationFn: forgotPassword,
+    onSuccess: () => {
+      toast.success("If the email exists, we sent a recovery link.");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Something went wrong.");
+    },
+  });
+
+  return (
+    <AuthCard
+      title="Reset your password"
+      description="We will send a recovery link to your inbox without revealing whether the address exists."
+      footer={
+        <>
+          Remembered it?{" "}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            href={buildAuthHref("/sign-in", nextPath)}
+          >
+            Return to sign in
+          </Link>
+        </>
+      }
+    >
+      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+        <div className="space-y-2">
+          <Label htmlFor="forgot-email">Email</Label>
+          <Input
+            id="forgot-email"
+            type="email"
+            placeholder="you@studio.com"
+            {...form.register("email")}
+          />
+          {form.formState.errors.email ? (
+            <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+          ) : null}
+        </div>
+
+        {mutation.isSuccess ? (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+            Check your inbox. If the address exists, you will receive a reset link from WaveStream.
+          </div>
+        ) : null}
+
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? "Sending link..." : "Send recovery link"}
+        </Button>
+      </form>
+    </AuthCard>
+  );
+}
+
+function ResetPasswordForm({
+  nextPath,
+  resetToken,
+}: Pick<AuthFormProps, "nextPath" | "resetToken">) {
+  const router = useRouter();
+  const resolvedToken = getFirstQueryValue(resetToken) ?? "";
+  const hasPrefilledToken = resolvedToken.length > 0;
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      token: resolvedToken,
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: () => {
+      toast.success("Password updated. You can sign in again now.");
+      router.replace(buildAuthHref("/sign-in", nextPath));
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Something went wrong.");
+    },
+  });
+
+  return (
+    <AuthCard
+      title="Create a new password"
+      description="Set a strong replacement password, then return to sign in with the same account."
+      footer={
+        <>
+          Need a fresh link?{" "}
+          <Link
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+            href={buildAuthHref("/forgot-password", nextPath)}
+          >
+            Request recovery email
+          </Link>
+        </>
+      }
+    >
+      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+        {!hasPrefilledToken ? (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+            The reset token was not present in the link. You can paste it below or request a new
+            recovery email.
+          </div>
+        ) : (
+          <input type="hidden" {...form.register("token")} />
+        )}
+
+        {!hasPrefilledToken ? (
+          <div className="space-y-2">
+            <Label htmlFor="token">Reset token</Label>
+            <Input id="token" placeholder="Paste token from your email" {...form.register("token")} />
+            {form.formState.errors.token ? (
+              <p className="text-sm text-destructive">{form.formState.errors.token.message}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <Label htmlFor="new-password">New password</Label>
+          <Input
+            id="new-password"
+            type="password"
+            placeholder="********"
+            {...form.register("password")}
+          />
+          {form.formState.errors.password ? (
+            <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm password</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            placeholder="********"
+            {...form.register("confirmPassword")}
+          />
+          {form.formState.errors.confirmPassword ? (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.confirmPassword.message}
+            </p>
+          ) : null}
+        </div>
+
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? "Updating..." : "Update password"}
         </Button>
       </form>
     </AuthCard>
