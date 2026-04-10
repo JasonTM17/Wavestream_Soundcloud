@@ -2,17 +2,24 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Heart,
+  ListPlus,
   MessageSquare,
   Play,
   Repeat,
-  Share2,
   UserPlus2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AddToPlaylistDialog } from "@/components/playlists/add-to-playlist-dialog";
+import {
+  PlaylistEditorDialog,
+  type PlaylistEditorValues,
+} from "@/components/playlists/playlist-editor-dialog";
+import { ShareActionButton } from "@/components/playlists/share-action-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,14 +30,19 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
 import {
   formatCompactNumber,
   formatDuration,
+  toPlaylistCard,
   toTrackCard,
 } from "@/lib/wavestream-api";
 import {
+  useAddTrackToPlaylistMutation,
   useCreateCommentMutation,
+  useCreatePlaylistMutation,
+  useMyPlaylistsQuery,
   useRelatedTracksQuery,
   useToggleFollowMutation,
   useToggleTrackReactionMutation,
@@ -73,10 +85,19 @@ function TrackSkeleton() {
   );
 }
 
+const toPlaylistPayload = (values: PlaylistEditorValues) => ({
+  title: values.title,
+  description: values.description.trim() ? values.description.trim() : null,
+  isPublic: values.visibility === "public",
+});
+
 export default function TrackPage({ params }: TrackPageProps) {
+  const router = useRouter();
+  const session = useAuthSession();
   const trackQuery = useTrackQuery(params.slug);
   const commentsQuery = useTrackCommentsQuery(params.slug);
   const relatedQuery = useRelatedTracksQuery(params.slug);
+  const myPlaylistsQuery = useMyPlaylistsQuery();
   const setQueue = usePlayerStore((state) => state.setQueue);
   const playTrack = usePlayerStore((state) => state.playTrack);
   const [liked, setLiked] = React.useState(false);
@@ -84,22 +105,50 @@ export default function TrackPage({ params }: TrackPageProps) {
   const [following, setFollowing] = React.useState(false);
   const [commentBody, setCommentBody] = React.useState("");
   const [timestamp, setTimestamp] = React.useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = React.useState(false);
+  const [selectedPlaylistId, setSelectedPlaylistId] = React.useState<string>("");
 
   const currentTrack = trackQuery.data;
   const relatedTracks = relatedQuery.data ?? [];
   const comments = commentsQuery.data ?? [];
   const ownerId = currentTrack?.artist.id ?? "";
 
+  const playlistOptions = React.useMemo(
+    () =>
+      (myPlaylistsQuery.data ?? []).map((playlist) => {
+        const card = toPlaylistCard(playlist);
+        return {
+          id: card.id,
+          title: card.title,
+          description: card.description,
+          trackCount: card.trackCount,
+          totalDurationLabel: card.totalDurationLabel,
+          isPublic: card.isPublic,
+          coverUrl: card.coverUrl,
+        };
+      }),
+    [myPlaylistsQuery.data],
+  );
+
   const likeMutation = useToggleTrackReactionMutation(params.slug, "like");
   const repostMutation = useToggleTrackReactionMutation(params.slug, "repost");
   const followMutation = useToggleFollowMutation(ownerId);
   const commentMutation = useCreateCommentMutation(params.slug);
+  const createPlaylistMutation = useCreatePlaylistMutation();
+  const addTrackToPlaylistMutation = useAddTrackToPlaylistMutation(selectedPlaylistId);
 
   React.useEffect(() => {
     setLiked(Boolean(currentTrack?.isLiked));
     setReposted(Boolean(currentTrack?.isReposted));
     setFollowing(Boolean(currentTrack?.isFollowingArtist));
   }, [currentTrack?.isFollowingArtist, currentTrack?.isLiked, currentTrack?.isReposted]);
+
+  React.useEffect(() => {
+    if (!selectedPlaylistId && playlistOptions[0]?.id) {
+      setSelectedPlaylistId(playlistOptions[0].id);
+    }
+  }, [playlistOptions, selectedPlaylistId]);
 
   if (trackQuery.isLoading) {
     return <TrackSkeleton />;
@@ -160,6 +209,43 @@ export default function TrackPage({ params }: TrackPageProps) {
     );
   };
 
+  const openPlaylistDialog = () => {
+    if (session.isBooting) {
+      toast("Checking your session...");
+      return;
+    }
+
+    if (!session.isAuthenticated) {
+      router.push(`/sign-in?next=${encodeURIComponent(`/track/${params.slug}`)}`);
+      return;
+    }
+
+    if (!selectedPlaylistId && playlistOptions[0]?.id) {
+      setSelectedPlaylistId(playlistOptions[0].id);
+    }
+    setIsAddDialogOpen(true);
+  };
+
+  const handleCreatePlaylist = async (values: PlaylistEditorValues) => {
+    const createdPlaylist = await createPlaylistMutation.mutateAsync(toPlaylistPayload(values));
+    setSelectedPlaylistId(createdPlaylist.id);
+    setIsCreatePlaylistOpen(false);
+    setIsAddDialogOpen(true);
+    toast.success(`Created "${createdPlaylist.title}".`);
+  };
+
+  const handleAddToPlaylist = async (playlistId: string) => {
+    const playlist = playlistOptions.find((item) => item.id === playlistId);
+    await addTrackToPlaylistMutation.mutateAsync({ trackId: currentTrack.id });
+    setSelectedPlaylistId(playlistId);
+    setIsAddDialogOpen(false);
+    toast.success(
+      playlist
+        ? `Added "${card.title}" to "${playlist.title}".`
+        : `Added "${card.title}" to your playlist.`,
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="w-fit px-0">
@@ -179,7 +265,8 @@ export default function TrackPage({ params }: TrackPageProps) {
             </div>
             <CardTitle className="text-4xl">{card.title}</CardTitle>
             <CardDescription className="max-w-2xl text-base">
-              Live track page wired to backend data, comments, related tracks, and playback state.
+              Live track page wired to backend data, comments, related tracks, playback state, and
+              real playlist actions.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -198,7 +285,9 @@ export default function TrackPage({ params }: TrackPageProps) {
               />
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Creator</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Creator
+                  </p>
                   <p className="mt-2 text-2xl font-semibold">{card.artistName}</p>
                   <p className="text-sm text-muted-foreground">{card.artistHandle}</p>
                 </div>
@@ -259,10 +348,27 @@ export default function TrackPage({ params }: TrackPageProps) {
                     <Repeat className="h-4 w-4" />
                     {reposted ? "Reposted" : "Repost"}
                   </Button>
-                  <Button variant="outline">
-                    <Share2 className="h-4 w-4" />
-                    Share
+                  <Button variant="outline" onClick={openPlaylistDialog}>
+                    <ListPlus className="h-4 w-4" />
+                    Add to playlist
                   </Button>
+                  <ShareActionButton
+                    title={card.title}
+                    text={`Listen to ${card.title} by ${card.artistName} on WaveStream.`}
+                    successLabel="Shared"
+                    onSuccess={(method) => {
+                      toast.success(
+                        method === "native"
+                          ? "Share sheet opened."
+                          : "Track link copied to clipboard.",
+                      );
+                    }}
+                    onError={(error) => {
+                      toast.error(error.message);
+                    }}
+                  >
+                    Share
+                  </ShareActionButton>
                 </div>
               </div>
             </div>
@@ -292,7 +398,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                             @{comment.user.username}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{comment.body}</p>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                          {comment.body}
+                        </p>
                       </div>
                     </div>
                   ))
@@ -386,7 +494,8 @@ export default function TrackPage({ params }: TrackPageProps) {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{card.artistName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {card.artistHandle} | {formatCompactNumber(currentTrack.artist.followerCount)} followers
+                    {card.artistHandle} |{" "}
+                    {formatCompactNumber(currentTrack.artist.followerCount)} followers
                   </p>
                 </div>
                 <Button
@@ -397,7 +506,9 @@ export default function TrackPage({ params }: TrackPageProps) {
                     followMutation.mutate(nextFollowing, {
                       onError: (error) => {
                         setFollowing((value) => !value);
-                        toast.error(error instanceof Error ? error.message : "Failed to update follow.");
+                        toast.error(
+                          error instanceof Error ? error.message : "Failed to update follow.",
+                        );
                       },
                     });
                   }}
@@ -461,6 +572,37 @@ export default function TrackPage({ params }: TrackPageProps) {
           </Card>
         </div>
       </section>
+
+      <AddToPlaylistDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        trackTitle={card.title}
+        trackArtistName={card.artistName}
+        trackDescription={card.description}
+        playlists={playlistOptions}
+        selectedPlaylistId={selectedPlaylistId}
+        onSelectedPlaylistIdChange={setSelectedPlaylistId}
+        isPending={addTrackToPlaylistMutation.isPending}
+        emptyStateDescription="Create a playlist first, then add this track without leaving the current page."
+        onConfirm={handleAddToPlaylist}
+        onCreatePlaylist={() => {
+          setIsAddDialogOpen(false);
+          setIsCreatePlaylistOpen(true);
+        }}
+      />
+
+      <PlaylistEditorDialog
+        open={isCreatePlaylistOpen}
+        onOpenChange={(open) => {
+          setIsCreatePlaylistOpen(open);
+          if (!open) {
+            setIsAddDialogOpen(false);
+          }
+        }}
+        mode="create"
+        isPending={createPlaylistMutation.isPending}
+        onSubmit={handleCreatePlaylist}
+      />
     </div>
   );
 }

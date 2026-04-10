@@ -7,7 +7,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 
 export type ShareActionMethod = "native" | "clipboard" | "custom";
 
-export type ShareActionButtonProps = Omit<ButtonProps, "onClick" | "children"> & {
+export type ShareActionButtonProps = Omit<ButtonProps, "onClick" | "children" | "onError"> & {
   title?: string;
   text?: string;
   url?: string;
