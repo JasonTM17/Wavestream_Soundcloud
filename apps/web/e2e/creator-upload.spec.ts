@@ -7,10 +7,13 @@ const creatorCredentials = {
 
 async function signIn(page: Page) {
   await page.goto("/sign-in?next=%2Fcreator");
-  await page.getByLabel("Email").fill(creatorCredentials.email);
-  await page.getByLabel("Password").fill(creatorCredentials.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/creator$/);
+  await expect(page.getByRole("heading", { name: "Sign in to your studio" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Email" }).fill(creatorCredentials.email);
+  await page.getByRole("textbox", { name: "Password" }).fill(creatorCredentials.password);
+  await Promise.all([
+    page.waitForURL(/\/creator$/, { timeout: 20_000 }),
+    page.getByRole("button", { name: "Sign in" }).click(),
+  ]);
 }
 
 function createWavBuffer(durationSeconds = 1) {
