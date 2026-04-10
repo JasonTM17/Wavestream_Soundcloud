@@ -100,6 +100,7 @@ export class AuthController {
   }
 
   @HttpCode(200)
+  @Public()
   @Post('logout')
   async logout(
     @Req() request: Request,
