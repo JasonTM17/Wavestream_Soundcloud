@@ -1,4 +1,5 @@
-import { TrackDto, UserDto } from '@wavestream/shared';
+import { CommentDto, TrackDto, UserDto } from '@wavestream/shared';
+import { CommentEntity } from 'src/database/entities/comment.entity';
 import { GenreEntity } from 'src/database/entities/genre.entity';
 import { ProfileEntity } from 'src/database/entities/profile.entity';
 import { TagEntity } from 'src/database/entities/tag.entity';
@@ -85,4 +86,15 @@ export const mapTrack = (
   createdAt: track.createdAt.toISOString(),
   updatedAt: track.updatedAt.toISOString(),
   ...overrides,
+});
+
+export const mapComment = (comment: CommentEntity): CommentDto => ({
+  id: comment.id,
+  body: comment.body,
+  timestampSeconds: comment.timestampSeconds,
+  user: mapUser(comment.user),
+  trackId: comment.trackId,
+  parentId: comment.parentId,
+  replies: comment.replies?.map(mapComment) ?? [],
+  createdAt: comment.createdAt.toISOString(),
 });

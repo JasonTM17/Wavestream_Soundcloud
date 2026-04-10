@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   AUDIO_MIME_TYPES,
+  NotificationType,
   IMAGE_MIME_TYPES,
   MAX_AUDIO_SIZE_BYTES,
   MAX_IMAGE_SIZE_BYTES,
@@ -17,8 +18,8 @@ import {
 import { parseBuffer } from 'music-metadata';
 import { extname } from 'path';
 import { Readable } from 'stream';
-import { In, Repository } from 'typeorm';
-import { mapTrack } from 'src/common/utils/mappers';
+import { In, IsNull, Repository } from 'typeorm';
+import { mapComment, mapTrack } from 'src/common/utils/mappers';
 import {
   createPaginationMeta,
   normalizePagination,
@@ -28,13 +29,21 @@ import {
   sanitizePlainText,
   sanitizeRichText,
 } from 'src/common/utils/text.util';
+import { CommentEntity } from 'src/database/entities/comment.entity';
 import { GenreEntity } from 'src/database/entities/genre.entity';
+import { LikeEntity } from 'src/database/entities/like.entity';
+import { ListeningHistoryEntity } from 'src/database/entities/listening-history.entity';
+import { PlayEventEntity } from 'src/database/entities/play-event.entity';
+import { RepostEntity } from 'src/database/entities/repost.entity';
 import { TagEntity } from 'src/database/entities/tag.entity';
 import { TrackFileEntity } from 'src/database/entities/track-file.entity';
 import { TrackEntity } from 'src/database/entities/track.entity';
 import { UserEntity } from 'src/database/entities/user.entity';
+import { NotificationsService } from 'src/modules/notifications/notifications.service';
+import { CreateCommentDto } from 'src/modules/tracks/dto/create-comment.dto';
 import { StorageService } from 'src/storage/storage.service';
 import { CreateTrackDto } from 'src/modules/tracks/dto/create-track.dto';
+import { RecordPlayDto } from 'src/modules/tracks/dto/record-play.dto';
 import { TrackListQueryDto } from 'src/modules/tracks/dto/track-list-query.dto';
 import { UpdateTrackDto } from 'src/modules/tracks/dto/update-track.dto';
 
@@ -52,9 +61,20 @@ export class TracksService {
     private readonly genresRepository: Repository<GenreEntity>,
     @InjectRepository(TagEntity)
     private readonly tagsRepository: Repository<TagEntity>,
+    @InjectRepository(CommentEntity)
+    private readonly commentsRepository: Repository<CommentEntity>,
+    @InjectRepository(LikeEntity)
+    private readonly likesRepository: Repository<LikeEntity>,
+    @InjectRepository(RepostEntity)
+    private readonly repostsRepository: Repository<RepostEntity>,
+    @InjectRepository(PlayEventEntity)
+    private readonly playEventsRepository: Repository<PlayEventEntity>,
+    @InjectRepository(ListeningHistoryEntity)
+    private readonly listeningHistoryRepository: Repository<ListeningHistoryEntity>,
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
     private readonly storageService: StorageService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async listTracks(query: TrackListQueryDto, viewer?: UserEntity) {
@@ -131,7 +151,7 @@ export class TracksService {
     const track = await this.findTrackOrFail(idOrSlug);
     this.assertCanAccess(track, viewer);
 
-    return mapTrack(track);
+    return this.mapTrackWithViewerState(track, viewer);
   }
 
   async createTrack(
@@ -317,6 +337,257 @@ export class TracksService {
     return { url };
   }
 
+  async likeTrack(idOrSlug: string, user: UserEntity) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    this.assertCanAccess(track, user);
+
+    const existing = await this.likesRepository.findOneBy({
+      userId: user.id,
+      trackId: track.id,
+    });
+
+    if (existing) {
+      return { liked: true };
+    }
+
+    await this.likesRepository.save(
+      this.likesRepository.create({
+        userId: user.id,
+        trackId: track.id,
+      }),
+    );
+    track.likeCount += 1;
+    await this.tracksRepository.save(track);
+
+    if (track.artistId !== user.id) {
+      await this.notificationsService.createNotification(
+        track.artistId,
+        NotificationType.LIKE,
+        {
+          trackId: track.id,
+          trackTitle: track.title,
+          userId: user.id,
+          username: user.username,
+        },
+      );
+    }
+
+    return { liked: true, likeCount: track.likeCount };
+  }
+
+  async unlikeTrack(idOrSlug: string, user: UserEntity) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    const existing = await this.likesRepository.findOneBy({
+      userId: user.id,
+      trackId: track.id,
+    });
+
+    if (!existing) {
+      return { liked: false, likeCount: track.likeCount };
+    }
+
+    await this.likesRepository.remove(existing);
+    track.likeCount = Math.max(0, track.likeCount - 1);
+    await this.tracksRepository.save(track);
+
+    return { liked: false, likeCount: track.likeCount };
+  }
+
+  async repostTrack(idOrSlug: string, user: UserEntity) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    this.assertCanAccess(track, user);
+
+    const existing = await this.repostsRepository.findOneBy({
+      userId: user.id,
+      trackId: track.id,
+    });
+
+    if (existing) {
+      return { reposted: true };
+    }
+
+    await this.repostsRepository.save(
+      this.repostsRepository.create({
+        userId: user.id,
+        trackId: track.id,
+      }),
+    );
+    track.repostCount += 1;
+    await this.tracksRepository.save(track);
+
+    if (track.artistId !== user.id) {
+      await this.notificationsService.createNotification(
+        track.artistId,
+        NotificationType.REPOST,
+        {
+          trackId: track.id,
+          trackTitle: track.title,
+          userId: user.id,
+          username: user.username,
+        },
+      );
+    }
+
+    return { reposted: true, repostCount: track.repostCount };
+  }
+
+  async unrepostTrack(idOrSlug: string, user: UserEntity) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    const existing = await this.repostsRepository.findOneBy({
+      userId: user.id,
+      trackId: track.id,
+    });
+
+    if (!existing) {
+      return { reposted: false, repostCount: track.repostCount };
+    }
+
+    await this.repostsRepository.remove(existing);
+    track.repostCount = Math.max(0, track.repostCount - 1);
+    await this.tracksRepository.save(track);
+
+    return { reposted: false, repostCount: track.repostCount };
+  }
+
+  async getComments(idOrSlug: string, viewer?: UserEntity) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    this.assertCanAccess(track, viewer);
+
+    const comments = await this.commentsRepository.find({
+      where: {
+        trackId: track.id,
+        parentId: IsNull(),
+      },
+      relations: {
+        user: { profile: true },
+        replies: { user: { profile: true } },
+      },
+      order: {
+        createdAt: 'ASC',
+        replies: {
+          createdAt: 'ASC',
+        },
+      },
+    });
+
+    return comments
+      .filter((comment) => !comment.isHidden)
+      .map((comment) => ({
+        ...mapComment(comment),
+        replies:
+          comment.replies
+            ?.filter((reply) => !reply.isHidden)
+            .map((reply) => mapComment(reply)) ?? [],
+      }));
+  }
+
+  async addComment(idOrSlug: string, user: UserEntity, dto: CreateCommentDto) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    this.assertCanAccess(track, user);
+
+    if (!track.commentsEnabled) {
+      throw new ForbiddenException('Comments are disabled for this track');
+    }
+
+    if (dto.parentId) {
+      const parent = await this.commentsRepository.findOneBy({
+        id: dto.parentId,
+        trackId: track.id,
+      });
+      if (!parent) {
+        throw new NotFoundException('Parent comment not found');
+      }
+    }
+
+    const comment = this.commentsRepository.create({
+      userId: user.id,
+      trackId: track.id,
+      body: sanitizeRichText(dto.body) ?? dto.body,
+      timestampSeconds: dto.timestampSeconds ?? null,
+      parentId: dto.parentId ?? null,
+      isHidden: false,
+    });
+    const saved = await this.commentsRepository.save(comment);
+    track.commentCount += 1;
+    await this.tracksRepository.save(track);
+
+    if (track.artistId !== user.id) {
+      await this.notificationsService.createNotification(
+        track.artistId,
+        NotificationType.COMMENT,
+        {
+          trackId: track.id,
+          trackTitle: track.title,
+          userId: user.id,
+          username: user.username,
+          commentId: saved.id,
+        },
+      );
+    }
+
+    const fullComment = await this.commentsRepository.findOneOrFail({
+      where: { id: saved.id },
+      relations: { user: { profile: true } },
+    });
+
+    return mapComment(fullComment);
+  }
+
+  async recordPlay(
+    idOrSlug: string,
+    viewer: UserEntity | undefined,
+    dto: RecordPlayDto,
+  ) {
+    const track = await this.findTrackOrFail(idOrSlug);
+    this.assertCanAccess(track, viewer);
+
+    await this.playEventsRepository.save(
+      this.playEventsRepository.create({
+        trackId: track.id,
+        userId: viewer?.id ?? null,
+        durationListened: dto.durationListened ?? 0,
+        source: dto.source ?? 'player',
+        playedAt: new Date(),
+      }),
+    );
+
+    if (viewer) {
+      await this.listeningHistoryRepository.save(
+        this.listeningHistoryRepository.create({
+          userId: viewer.id,
+          trackId: track.id,
+          playedAt: new Date(),
+        }),
+      );
+    }
+
+    track.playCount += 1;
+    await this.tracksRepository.save(track);
+
+    return { playCount: track.playCount };
+  }
+
+  async getListeningHistory(userId: string) {
+    const items = await this.listeningHistoryRepository.find({
+      where: { userId },
+      relations: {
+        track: {
+          artist: { profile: true },
+          genre: true,
+          tags: true,
+          file: true,
+        },
+      },
+      order: { playedAt: 'DESC' },
+      take: 50,
+    });
+
+    return items.map((item) => ({
+      playedAt: item.playedAt.toISOString(),
+      track: mapTrack(item.track),
+    }));
+  }
+
   private async findTrackOrFail(idOrSlug: string) {
     const track = await this.tracksRepository.findOne({
       where: [{ id: idOrSlug }, { slug: idOrSlug }],
@@ -333,6 +604,42 @@ export class TracksService {
     }
 
     return track;
+  }
+
+  private async mapTrackWithViewerState(
+    track: TrackEntity,
+    viewer?: UserEntity,
+  ) {
+    if (!viewer) {
+      return mapTrack(track);
+    }
+
+    const [isLiked, isReposted, isFollowingArtist] = await Promise.all([
+      this.likesRepository.existsBy({
+        userId: viewer.id,
+        trackId: track.id,
+      }),
+      this.repostsRepository.existsBy({
+        userId: viewer.id,
+        trackId: track.id,
+      }),
+      viewer.id === track.artistId
+        ? Promise.resolve(false)
+        : this.usersRepository
+            .createQueryBuilder('user')
+            .leftJoin('user.following', 'following')
+            .where('user.id = :viewerId', { viewerId: viewer.id })
+            .andWhere('following.followingId = :artistId', {
+              artistId: track.artistId,
+            })
+            .getExists(),
+    ]);
+
+    return mapTrack(track, {
+      isLiked,
+      isReposted,
+      isFollowingArtist,
+    });
   }
 
   private assertOwnership(track: TrackEntity, actor: UserEntity) {

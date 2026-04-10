@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -17,7 +18,9 @@ import { Request, Response } from 'express';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { UserEntity } from 'src/database/entities/user.entity';
+import { CreateCommentDto } from 'src/modules/tracks/dto/create-comment.dto';
 import { CreateTrackDto } from 'src/modules/tracks/dto/create-track.dto';
+import { RecordPlayDto } from 'src/modules/tracks/dto/record-play.dto';
 import { TrackListQueryDto } from 'src/modules/tracks/dto/track-list-query.dto';
 import { UpdateTrackDto } from 'src/modules/tracks/dto/update-track.dto';
 import { TracksService } from 'src/modules/tracks/tracks.service';
@@ -38,6 +41,11 @@ export class TracksController {
   @Get('me/uploads')
   getMyTracks(@CurrentUser() user: UserEntity) {
     return this.tracksService.listMyTracks(user.id);
+  }
+
+  @Get('me/history')
+  getListeningHistory(@CurrentUser() user: UserEntity) {
+    return this.tracksService.getListeningHistory(user.id);
   }
 
   @Public()
@@ -84,6 +92,52 @@ export class TracksController {
     return this.tracksService.deleteTrack(id, user);
   }
 
+  @Post(':id/like')
+  likeTrack(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+    return this.tracksService.likeTrack(id, user);
+  }
+
+  @Delete(':id/like')
+  unlikeTrack(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+    return this.tracksService.unlikeTrack(id, user);
+  }
+
+  @Post(':id/repost')
+  repostTrack(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+    return this.tracksService.repostTrack(id, user);
+  }
+
+  @Delete(':id/repost')
+  unrepostTrack(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+    return this.tracksService.unrepostTrack(id, user);
+  }
+
+  @Public()
+  @Get(':id/comments')
+  getComments(@Param('id') id: string, @CurrentUser() user?: UserEntity) {
+    return this.tracksService.getComments(id, user);
+  }
+
+  @Post(':id/comments')
+  addComment(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.tracksService.addComment(id, user, dto);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post(':id/play')
+  recordPlay(
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity | undefined,
+    @Body() dto: RecordPlayDto,
+  ) {
+    return this.tracksService.recordPlay(id, user, dto);
+  }
+
   @Public()
   @Get(':id/stream')
   async streamTrack(
@@ -95,7 +149,9 @@ export class TracksController {
     const result = await this.tracksService.streamTrack(
       id,
       user,
-      request.headers.range,
+      typeof request.headers.range === 'string'
+        ? request.headers.range
+        : undefined,
     );
 
     response.status(result.contentRange ? 206 : 200);
