@@ -11,6 +11,7 @@ test("renders the auth shell with creator next targets", async ({ page }) => {
   await page.goto("/sign-in?next=%2Fcreator");
 
   await expect(page.getByRole("heading", { name: "Sign in to your studio" })).toBeVisible();
+  await expect(page.getByTestId("auth-credits").getByText("Portfolio project by Nguyễn Sơn")).toBeVisible();
   const publicCtas = getPublicListeningCta(page);
 
   await expect(publicCtas.listenNow).toBeVisible();
@@ -44,6 +45,32 @@ test("renders the sign-up shell with matching public CTAs", async ({ page }) => 
     "href",
     "/sign-in?next=%2Fcreator",
   );
+});
+
+test("keeps the auth hero spacing stable on desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 780 });
+  await page.goto("/sign-in?next=%2Fcreator");
+
+  const ctaRow = page.getByTestId("auth-cta-row");
+  const featuredCard = page.getByTestId("auth-featured-track-card");
+  const credits = page.getByTestId("auth-credits");
+
+  await expect(ctaRow).toBeVisible();
+  await expect(featuredCard).toBeVisible();
+  await expect(credits).toBeVisible();
+
+  const [ctaBox, featuredBox, creditsBox] = await Promise.all([
+    ctaRow.boundingBox(),
+    featuredCard.boundingBox(),
+    credits.boundingBox(),
+  ]);
+
+  expect(ctaBox).not.toBeNull();
+  expect(featuredBox).not.toBeNull();
+  expect(creditsBox).not.toBeNull();
+
+  expect(featuredBox!.y).toBeGreaterThan(ctaBox!.y + ctaBox!.height + 20);
+  expect(creditsBox!.y).toBeGreaterThan(featuredBox!.y + featuredBox!.height + 12);
 });
 
 test("protects library and creator routes for guests", async ({ page }) => {
