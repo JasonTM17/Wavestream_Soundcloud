@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ReportableType } from "@wavestream/shared";
 import {
   ArrowDown,
@@ -39,10 +39,6 @@ import {
   useUpdatePlaylistMutation,
 } from "@/lib/wavestream-queries";
 
-type PlaylistPageProps = {
-  params: { slug: string };
-};
-
 function PlaylistSkeleton() {
   return (
     <div className="space-y-6">
@@ -65,10 +61,12 @@ const toPlaylistPayload = (values: PlaylistEditorValues) => ({
   isPublic: values.visibility === "public",
 });
 
-export default function PlaylistPage({ params }: PlaylistPageProps) {
+export default function PlaylistPage() {
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
   const session = useAuthSession();
-  const playlistQuery = usePlaylistQuery(params.slug);
+  const playlistSlug = typeof params.slug === "string" ? params.slug : "";
+  const playlistQuery = usePlaylistQuery(playlistSlug);
   const setQueue = usePlayerStore((state) => state.setQueue);
   const playTrack = usePlayerStore((state) => state.playTrack);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -80,10 +78,10 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
   const playlist = playlistData ? toPlaylistCard(playlistData) : null;
   const playlistEntries = playlistData?.tracks ?? [];
 
-  const updatePlaylistMutation = useUpdatePlaylistMutation(playlistData?.id ?? params.slug);
-  const deletePlaylistMutation = useDeletePlaylistMutation(playlistData?.id ?? params.slug);
-  const removeTrackMutation = useRemoveTrackFromPlaylistMutation(playlistData?.id ?? params.slug);
-  const reorderPlaylistMutation = useReorderPlaylistTracksMutation(playlistData?.id ?? params.slug);
+  const updatePlaylistMutation = useUpdatePlaylistMutation(playlistData?.id ?? playlistSlug);
+  const deletePlaylistMutation = useDeletePlaylistMutation(playlistData?.id ?? playlistSlug);
+  const removeTrackMutation = useRemoveTrackFromPlaylistMutation(playlistData?.id ?? playlistSlug);
+  const reorderPlaylistMutation = useReorderPlaylistTracksMutation(playlistData?.id ?? playlistSlug);
   const createReportMutation = useCreateReportMutation();
 
   const isOwner =
@@ -93,6 +91,10 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
 
   const pendingRemoveTrack =
     playlistEntries.find((entry) => entry.track.id === pendingRemoveTrackId)?.track ?? null;
+
+  if (!playlistSlug) {
+    return <PlaylistSkeleton />;
+  }
 
   if (playlistQuery.isLoading) {
     return <PlaylistSkeleton />;
@@ -173,7 +175,7 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
     }
 
     if (!session.isAuthenticated) {
-      router.push(`/sign-in?next=${encodeURIComponent(`/playlist/${params.slug}`)}`);
+      router.push(`/sign-in?next=${encodeURIComponent(`/playlist/${playlistSlug}`)}`);
       return;
     }
 

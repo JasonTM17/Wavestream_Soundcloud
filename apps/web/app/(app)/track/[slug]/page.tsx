@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ReportableType } from "@wavestream/shared";
 import {
   ArrowLeft,
@@ -55,10 +55,6 @@ import {
   useTrackQuery,
 } from "@/lib/wavestream-queries";
 
-type TrackPageProps = {
-  params: { slug: string };
-};
-
 function TrackSkeleton() {
   return (
     <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -96,12 +92,14 @@ const toPlaylistPayload = (values: PlaylistEditorValues) => ({
   isPublic: values.visibility === "public",
 });
 
-export default function TrackPage({ params }: TrackPageProps) {
+export default function TrackPage() {
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
   const session = useAuthSession();
-  const trackQuery = useTrackQuery(params.slug);
-  const commentsQuery = useTrackCommentsQuery(params.slug);
-  const relatedQuery = useRelatedTracksQuery(params.slug);
+  const trackSlug = typeof params.slug === "string" ? params.slug : "";
+  const trackQuery = useTrackQuery(trackSlug);
+  const commentsQuery = useTrackCommentsQuery(trackSlug);
+  const relatedQuery = useRelatedTracksQuery(trackSlug);
   const myPlaylistsQuery = useMyPlaylistsQuery();
   const playerCurrentTrack = usePlayerStore((state) => state.currentTrack);
   const playerIsPlaying = usePlayerStore((state) => state.isPlaying);
@@ -143,10 +141,10 @@ export default function TrackPage({ params }: TrackPageProps) {
     [myPlaylistsQuery.data],
   );
 
-  const likeMutation = useToggleTrackReactionMutation(params.slug, "like");
-  const repostMutation = useToggleTrackReactionMutation(params.slug, "repost");
+  const likeMutation = useToggleTrackReactionMutation(trackSlug, "like");
+  const repostMutation = useToggleTrackReactionMutation(trackSlug, "repost");
   const followMutation = useToggleFollowMutation(ownerId);
-  const commentMutation = useCreateCommentMutation(params.slug);
+  const commentMutation = useCreateCommentMutation(trackSlug);
   const createPlaylistMutation = useCreatePlaylistMutation();
   const addTrackToPlaylistMutation = useAddTrackToPlaylistMutation(selectedPlaylistId);
   const createReportMutation = useCreateReportMutation();
@@ -162,6 +160,10 @@ export default function TrackPage({ params }: TrackPageProps) {
       setSelectedPlaylistId(playlistOptions[0].id);
     }
   }, [playlistOptions, selectedPlaylistId]);
+
+  if (!trackSlug) {
+    return <TrackSkeleton />;
+  }
 
   if (trackQuery.isLoading) {
     return <TrackSkeleton />;
@@ -247,7 +249,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     if (!session.isAuthenticated) {
-      router.push(`/sign-in?next=${encodeURIComponent(`/track/${params.slug}`)}`);
+      router.push(`/sign-in?next=${encodeURIComponent(`/track/${trackSlug}`)}`);
       return;
     }
 
@@ -284,7 +286,7 @@ export default function TrackPage({ params }: TrackPageProps) {
     }
 
     if (!session.isAuthenticated) {
-      router.push(`/sign-in?next=${encodeURIComponent(`/track/${params.slug}`)}`);
+      router.push(`/sign-in?next=${encodeURIComponent(`/track/${trackSlug}`)}`);
       return;
     }
 

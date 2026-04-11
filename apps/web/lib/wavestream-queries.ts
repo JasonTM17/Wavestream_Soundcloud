@@ -286,6 +286,8 @@ export function useTrackQuery(idOrSlug: string) {
   return useQuery({
     queryKey: ["track", idOrSlug],
     queryFn: async (): Promise<TrackSummary> => getTrack(idOrSlug),
+    enabled: Boolean(idOrSlug.trim()),
+    retry: false,
     staleTime: 30_000,
   });
 }
@@ -294,6 +296,7 @@ export function useTrackCommentsQuery(idOrSlug: string) {
   return useQuery({
     queryKey: ["track", idOrSlug, "comments"],
     queryFn: async () => getTrackComments(idOrSlug),
+    enabled: Boolean(idOrSlug.trim()),
     staleTime: 10_000,
     retry: false,
   });
@@ -312,6 +315,7 @@ export function useRelatedTracksQuery(idOrSlug: string) {
         throw error;
       }
     },
+    enabled: Boolean(idOrSlug.trim()),
     staleTime: 20_000,
     retry: false,
   });
@@ -321,6 +325,8 @@ export function usePlaylistQuery(idOrSlug: string) {
   return useQuery({
     queryKey: ["playlist", idOrSlug],
     queryFn: async (): Promise<PlaylistSummary> => getPlaylist(idOrSlug),
+    enabled: Boolean(idOrSlug.trim()),
+    retry: false,
     staleTime: 30_000,
   });
 }
