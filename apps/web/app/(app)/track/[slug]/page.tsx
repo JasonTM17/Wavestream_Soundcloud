@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ReportableType } from "@wavestream/shared";
 import {
   ArrowLeft,
   Heart,
@@ -10,10 +11,12 @@ import {
   MessageSquare,
   Play,
   Repeat,
+  ShieldAlert,
   UserPlus2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ReportDialog } from "@/components/reports/report-dialog";
 import { AddToPlaylistDialog } from "@/components/playlists/add-to-playlist-dialog";
 import {
   PlaylistEditorDialog,
@@ -44,6 +47,7 @@ import {
   useCreatePlaylistMutation,
   useMyPlaylistsQuery,
   useRelatedTracksQuery,
+  useCreateReportMutation,
   useToggleFollowMutation,
   useToggleTrackReactionMutation,
   useTrackCommentsQuery,
@@ -107,6 +111,7 @@ export default function TrackPage({ params }: TrackPageProps) {
   const [timestamp, setTimestamp] = React.useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
   const [selectedPlaylistId, setSelectedPlaylistId] = React.useState<string>("");
 
   const currentTrack = trackQuery.data;
@@ -137,6 +142,7 @@ export default function TrackPage({ params }: TrackPageProps) {
   const commentMutation = useCreateCommentMutation(params.slug);
   const createPlaylistMutation = useCreatePlaylistMutation();
   const addTrackToPlaylistMutation = useAddTrackToPlaylistMutation(selectedPlaylistId);
+  const createReportMutation = useCreateReportMutation();
 
   React.useEffect(() => {
     setLiked(Boolean(currentTrack?.isLiked));
@@ -175,6 +181,7 @@ export default function TrackPage({ params }: TrackPageProps) {
 
   const card = toTrackCard(currentTrack);
   const queue = [card, ...relatedTracks.filter((track) => track.id !== card.id).map(toTrackCard)];
+  const isOwner = session.user?.id === currentTrack.artist.id;
 
   const playNow = () => {
     setQueue(queue);
@@ -244,6 +251,31 @@ export default function TrackPage({ params }: TrackPageProps) {
         ? `Added "${card.title}" to "${playlist.title}".`
         : `Added "${card.title}" to your playlist.`,
     );
+  };
+
+  const openReportDialog = () => {
+    if (session.isBooting) {
+      toast("Checking your session...");
+      return;
+    }
+
+    if (!session.isAuthenticated) {
+      router.push(`/sign-in?next=${encodeURIComponent(`/track/${params.slug}`)}`);
+      return;
+    }
+
+    setIsReportOpen(true);
+  };
+
+  const handleCreateReport = async (values: { reason: string; details?: string | null }) => {
+    await createReportMutation.mutateAsync({
+      reportableType: ReportableType.TRACK,
+      reportableId: currentTrack.id,
+      reason: values.reason,
+      details: values.details,
+    });
+    setIsReportOpen(false);
+    toast.success("Report submitted to the moderation queue.");
   };
 
   return (
@@ -369,6 +401,12 @@ export default function TrackPage({ params }: TrackPageProps) {
                   >
                     Share
                   </ShareActionButton>
+                  {!isOwner ? (
+                    <Button variant="outline" onClick={openReportDialog}>
+                      <ShieldAlert className="h-4 w-4" />
+                      Report
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -602,6 +640,15 @@ export default function TrackPage({ params }: TrackPageProps) {
         mode="create"
         isPending={createPlaylistMutation.isPending}
         onSubmit={handleCreatePlaylist}
+      />
+
+      <ReportDialog
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        entityLabel="track"
+        entityName={card.title}
+        isPending={createReportMutation.isPending}
+        onSubmit={handleCreateReport}
       />
     </div>
   );

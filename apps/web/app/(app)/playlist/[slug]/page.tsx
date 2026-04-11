@@ -3,16 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ReportableType } from "@wavestream/shared";
 import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
   PencilLine,
   Play,
+  ShieldAlert,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ReportDialog } from "@/components/reports/report-dialog";
 import { ConfirmDeleteDialog } from "@/components/playlists/confirm-delete-dialog";
 import {
   PlaylistEditorDialog,
@@ -28,6 +31,7 @@ import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
 import { toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
 import {
+  useCreateReportMutation,
   useDeletePlaylistMutation,
   usePlaylistQuery,
   useRemoveTrackFromPlaylistMutation,
@@ -69,6 +73,7 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
   const playTrack = usePlayerStore((state) => state.playTrack);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
   const [pendingRemoveTrackId, setPendingRemoveTrackId] = React.useState<string | null>(null);
 
   const playlistData = playlistQuery.data;
@@ -79,6 +84,7 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
   const deletePlaylistMutation = useDeletePlaylistMutation(playlistData?.id ?? params.slug);
   const removeTrackMutation = useRemoveTrackFromPlaylistMutation(playlistData?.id ?? params.slug);
   const reorderPlaylistMutation = useReorderPlaylistTracksMutation(playlistData?.id ?? params.slug);
+  const createReportMutation = useCreateReportMutation();
 
   const isOwner =
     Boolean(session.user) &&
@@ -160,6 +166,31 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
     toast.success(`Removed "${pendingRemoveTrack.title}" from "${playlist.title}".`);
   };
 
+  const openReportDialog = () => {
+    if (session.isBooting) {
+      toast("Checking your session...");
+      return;
+    }
+
+    if (!session.isAuthenticated) {
+      router.push(`/sign-in?next=${encodeURIComponent(`/playlist/${params.slug}`)}`);
+      return;
+    }
+
+    setIsReportOpen(true);
+  };
+
+  const handleCreateReport = async (values: { reason: string; details?: string | null }) => {
+    await createReportMutation.mutateAsync({
+      reportableType: ReportableType.PLAYLIST,
+      reportableId: playlist.id,
+      reason: values.reason,
+      details: values.details,
+    });
+    setIsReportOpen(false);
+    toast.success("Report submitted to the moderation queue.");
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="w-fit px-0">
@@ -213,6 +244,12 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
           >
             Share
           </ShareActionButton>
+          {!isOwner ? (
+            <Button type="button" variant="outline" onClick={openReportDialog}>
+              <ShieldAlert className="h-4 w-4" />
+              Report
+            </Button>
+          ) : null}
           {isOwner ? (
             <>
               <Button type="button" variant="outline" onClick={() => setIsEditOpen(true)}>
@@ -413,6 +450,15 @@ export default function PlaylistPage({ params }: PlaylistPageProps) {
         confirmLabel="Remove track"
         isPending={removeTrackMutation.isPending}
         onConfirm={handleRemoveTrack}
+      />
+
+      <ReportDialog
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        entityLabel="playlist"
+        entityName={playlist.title}
+        isPending={createReportMutation.isPending}
+        onSubmit={handleCreateReport}
       />
     </div>
   );

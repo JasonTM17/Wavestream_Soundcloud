@@ -2,19 +2,24 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ReportableType } from "@wavestream/shared";
 import { ArrowLeft, CirclePlus, UserPlus2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ReportDialog } from "@/components/reports/report-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
 import { formatCompactNumber, toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
 import {
   useArtistProfileQuery,
+  useCreateReportMutation,
   usePlaylistsQuery,
   useToggleFollowMutation,
   useTracksQuery,
@@ -37,6 +42,8 @@ function ArtistSkeleton() {
 }
 
 export default function ArtistPage({ params }: ArtistPageProps) {
+  const router = useRouter();
+  const session = useAuthSession();
   const profile = useArtistProfileQuery(params.slug);
   const artist = profile.data?.user;
   const tracksQuery = useTracksQuery({ artistUsername: params.slug, limit: 12 });
@@ -44,7 +51,9 @@ export default function ArtistPage({ params }: ArtistPageProps) {
   const setQueue = usePlayerStore((state) => state.setQueue);
   const playTrack = usePlayerStore((state) => state.playTrack);
   const [following, setFollowing] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
   const followMutation = useToggleFollowMutation(artist?.id ?? "");
+  const createReportMutation = useCreateReportMutation();
 
   React.useEffect(() => {
     setFollowing(Boolean(profile.data?.isFollowing));
@@ -83,6 +92,31 @@ export default function ArtistPage({ params }: ArtistPageProps) {
 
     setQueue(trackCards);
     playTrack(trackCards[0]);
+  };
+
+  const openReportDialog = () => {
+    if (session.isBooting) {
+      toast("Checking your session...");
+      return;
+    }
+
+    if (!session.isAuthenticated) {
+      router.push(`/sign-in?next=${encodeURIComponent(`/artist/${params.slug}`)}`);
+      return;
+    }
+
+    setIsReportOpen(true);
+  };
+
+  const handleCreateReport = async (values: { reason: string; details?: string | null }) => {
+    await createReportMutation.mutateAsync({
+      reportableType: ReportableType.USER,
+      reportableId: artist.id,
+      reason: values.reason,
+      details: values.details,
+    });
+    setIsReportOpen(false);
+    toast.success("Report submitted to the moderation queue.");
   };
 
   return (
@@ -132,6 +166,11 @@ export default function ArtistPage({ params }: ArtistPageProps) {
               <CirclePlus className="h-4 w-4" />
               Add to queue
             </Button>
+            {session.user?.id !== artist.id ? (
+              <Button variant="outline" onClick={openReportDialog}>
+                Report
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -253,7 +292,15 @@ export default function ArtistPage({ params }: ArtistPageProps) {
           </Card>
         </div>
       </section>
+
+      <ReportDialog
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        entityLabel="artist profile"
+        entityName={artist.displayName}
+        isPending={createReportMutation.isPending}
+        onSubmit={handleCreateReport}
+      />
     </div>
   );
 }
-

@@ -24,6 +24,7 @@ import {
   useCurrentUserQuery,
   useDeletePlaylistMutation,
   useListeningHistoryQuery,
+  useMyReportsQuery,
   useMyPlaylistsQuery,
   useUpdatePlaylistMutation,
 } from "@/lib/wavestream-queries";
@@ -52,12 +53,14 @@ export default function LibraryPage() {
   const currentUserQuery = useCurrentUserQuery();
   const historyQuery = useListeningHistoryQuery();
   const myPlaylistsQuery = useMyPlaylistsQuery();
+  const myReportsQuery = useMyReportsQuery({ limit: 3 });
   const user = currentUserQuery.data ?? session.user;
   const history = historyQuery.data ?? [];
   const playlists = React.useMemo(
     () => (myPlaylistsQuery.data ?? []).map(toPlaylistCard),
     [myPlaylistsQuery.data],
   );
+  const reports = myReportsQuery.data?.data ?? [];
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [editingPlaylistId, setEditingPlaylistId] = React.useState<string | null>(null);
@@ -335,6 +338,40 @@ export default function LibraryPage() {
                   discovery, track actions, and artist surfaces without extra refresh steps.
                 </p>
                 <Progress value={Math.min(100, playlistTotal * 14 + 24)} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Your reports</CardTitle>
+                <CardDescription>Recent moderation reports you have submitted.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {myReportsQuery.isLoading ? (
+                  Array.from({ length: 2 }).map((_, index) => (
+                    <Skeleton key={index} className="h-24 w-full rounded-3xl" />
+                  ))
+                ) : reports.length ? (
+                  reports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="soft">{report.reportableType}</Badge>
+                        <Badge variant="outline">{report.status}</Badge>
+                      </div>
+                      <p className="mt-2 font-medium">{report.reason}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Created {new Date(report.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Report an item from a track, playlist, or artist page and it will appear here.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
