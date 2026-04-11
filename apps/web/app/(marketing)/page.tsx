@@ -110,18 +110,18 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid gap-3 lg:grid-cols-3 lg:items-start">
             <LandingHeroPlayButton
               spotlightTrack={spotlightTrack}
               queueTracks={heroQueueTracks}
             />
-            <Button asChild size="lg" variant="outline" className="rounded-full px-6">
+            <Button asChild size="lg" variant="outline" className="w-full rounded-full px-6">
               <Link href="/discover">
                 <Play className="h-4 w-4" />
                 Explore discovery
               </Link>
             </Button>
-            <Button asChild size="lg" variant="secondary" className="rounded-full px-6">
+            <Button asChild size="lg" variant="secondary" className="w-full rounded-full px-6">
               <Link href="/sign-up">
                 Create your account
                 <ArrowRight className="h-4 w-4" />

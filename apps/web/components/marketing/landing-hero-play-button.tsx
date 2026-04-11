@@ -91,10 +91,10 @@ export function LandingHeroPlayButton({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="w-full space-y-3">
       <Button
         size="lg"
-        className="rounded-full px-6"
+        className="w-full rounded-full px-6"
         onClick={handlePlay}
         disabled={!spotlightCard}
       >
