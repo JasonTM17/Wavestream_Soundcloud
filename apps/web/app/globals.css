@@ -51,28 +51,26 @@
   --font-mono: var(--font-ibm-plex-mono);
 }
 
-.dark {
-  :root {
-    --background: 225 39% 8%;
-    --foreground: 210 25% 96%;
-    --card: 225 30% 11%;
-    --card-foreground: 210 25% 96%;
-    --popover: 225 30% 11%;
-    --popover-foreground: 210 25% 96%;
-    --primary: 195 92% 42%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 157 35% 34%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 226 27% 17%;
-    --muted-foreground: 219 12% 65%;
-    --accent: 44 82% 58%;
-    --accent-foreground: 224 35% 13%;
-    --destructive: 0 74% 48%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 226 24% 19%;
-    --input: 226 24% 19%;
-    --ring: 195 92% 42%;
-  }
+html.dark {
+  --background: 225 39% 8%;
+  --foreground: 210 25% 96%;
+  --card: 225 30% 11%;
+  --card-foreground: 210 25% 96%;
+  --popover: 225 30% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 195 92% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 157 35% 34%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 226 27% 17%;
+  --muted-foreground: 219 12% 65%;
+  --accent: 44 82% 58%;
+  --accent-foreground: 224 35% 13%;
+  --destructive: 0 74% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 226 24% 19%;
+  --input: 226 24% 19%;
+  --ring: 195 92% 42%;
 }
 
 * {
@@ -82,6 +80,11 @@
 html {
   min-height: 100%;
   background: hsl(var(--background));
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -94,6 +97,17 @@ body {
     radial-gradient(circle at top right, rgba(239, 197, 90, 0.13), transparent 26%),
     linear-gradient(180deg, hsl(var(--background)), color-mix(in hsl, hsl(var(--background)), white 6%));
   background-attachment: fixed;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    background-image 180ms ease;
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at top left, rgba(38, 189, 255, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(239, 197, 90, 0.1), transparent 24%),
+    linear-gradient(180deg, hsl(var(--background)), color-mix(in hsl, hsl(var(--background)), black 10%));
 }
 
 a {

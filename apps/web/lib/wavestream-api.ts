@@ -343,6 +343,12 @@ export type DiscoveryResults = {
   genres: GenreSummary[];
 };
 
+type DiscoveryApiShape = Partial<DiscoveryResults> & {
+  trending?: TrackSummary[];
+  popularPlaylists?: PlaylistSummary[];
+  recentUploads?: TrackSummary[];
+};
+
 export type CreatorDashboardSummary = {
   totalPlays: number;
   totalLikes: number;
@@ -432,6 +438,27 @@ function getArrayPayload<T>(payload: unknown, key: string): T[] {
   }
 
   return [];
+}
+
+function getArrayPayloadFromKeys<T>(payload: unknown, keys: string[]) {
+  for (const key of keys) {
+    const items = getArrayPayload<T>(payload, key);
+    if (items.length) {
+      return items;
+    }
+  }
+
+  return [];
+}
+
+function buildFeaturedArtistsFromTracks(tracks: TrackSummary[]) {
+  const artistMap = new Map<string, UserSummary>();
+
+  tracks.forEach((track) => {
+    artistMap.set(track.artist.id, track.artist);
+  });
+
+  return Array.from(artistMap.values()).slice(0, 6);
 }
 
 function getPaginatedPayload<T>(payload: unknown): PaginatedApiResponse<T> {
@@ -666,17 +693,36 @@ export async function getSearchResults(query: string) {
 
 export async function getDiscoveryResults() {
   try {
-    const response = await apiGet<Partial<DiscoveryResults> | { data?: Partial<DiscoveryResults> }>(
+    const response = await apiGet<DiscoveryApiShape | { data?: DiscoveryApiShape }>(
       "/api/discovery/home",
     );
     const payload = isObject(response) && "data" in response ? response.data : response;
-    const result = (payload ?? {}) as Partial<DiscoveryResults>;
+    const result = (payload ?? {}) as DiscoveryApiShape;
+    const trendingTracks = getArrayPayloadFromKeys<TrackSummary>(result, [
+      "trendingTracks",
+      "trending",
+      "recentUploads",
+    ]);
+    const newReleases = getArrayPayloadFromKeys<TrackSummary>(result, [
+      "newReleases",
+      "recentUploads",
+      "trending",
+    ]);
+    const featuredPlaylists = getArrayPayloadFromKeys<PlaylistSummary>(result, [
+      "featuredPlaylists",
+      "popularPlaylists",
+    ]);
+    const featuredArtists = getArrayPayloadFromKeys<UserSummary>(result, [
+      "featuredArtists",
+    ]);
 
     return {
-      trendingTracks: result.trendingTracks ?? [],
-      newReleases: result.newReleases ?? [],
-      featuredPlaylists: result.featuredPlaylists ?? [],
-      featuredArtists: result.featuredArtists ?? [],
+      trendingTracks,
+      newReleases,
+      featuredPlaylists,
+      featuredArtists: featuredArtists.length
+        ? featuredArtists
+        : buildFeaturedArtistsFromTracks([...trendingTracks, ...newReleases]),
       genres: result.genres ?? [],
     };
   } catch (error) {

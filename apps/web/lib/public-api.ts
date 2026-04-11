@@ -11,6 +11,11 @@ type DiscoveryPayload = Partial<DiscoveryResults> | { data?: Partial<DiscoveryRe
 type GenresPayload = GenreSummary[] | { data?: GenreSummary[] };
 type TracksPayload = TrackSummary[] | { data?: TrackSummary[] };
 type PlaylistsPayload = PlaylistSummary[] | { data?: PlaylistSummary[] };
+type DiscoveryApiShape = Partial<DiscoveryResults> & {
+  trending?: TrackSummary[];
+  popularPlaylists?: PlaylistSummary[];
+  recentUploads?: TrackSummary[];
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -25,6 +30,27 @@ const asArray = <T,>(payload: unknown, key?: string) => {
   }
 
   return [];
+};
+
+const asArrayFromKeys = <T,>(payload: unknown, keys: string[]) => {
+  for (const key of keys) {
+    const items = asArray<T>(payload, key);
+    if (items.length) {
+      return items;
+    }
+  }
+
+  return [];
+};
+
+const buildFeaturedArtists = (tracks: TrackSummary[]) => {
+  const artistMap = new Map<string, UserSummary>();
+
+  tracks.forEach((track) => {
+    artistMap.set(track.artist.id, track.artist);
+  });
+
+  return Array.from(artistMap.values()).slice(0, 6);
 };
 
 async function fetchPublicJson(path: string) {
@@ -57,13 +83,32 @@ function normalizeDiscovery(payload: DiscoveryPayload | null): DiscoveryResults 
     return null;
   }
 
-  const source = isRecord(payload) && "data" in payload && isRecord(payload.data) ? payload.data : payload;
+  const source = (
+    isRecord(payload) && "data" in payload && isRecord(payload.data) ? payload.data : payload
+  ) as DiscoveryApiShape;
+  const trendingTracks = asArrayFromKeys<TrackSummary>(source, [
+    "trendingTracks",
+    "trending",
+    "recentUploads",
+  ]);
+  const newReleases = asArrayFromKeys<TrackSummary>(source, [
+    "newReleases",
+    "recentUploads",
+    "trending",
+  ]);
+  const featuredPlaylists = asArrayFromKeys<PlaylistSummary>(source, [
+    "featuredPlaylists",
+    "popularPlaylists",
+  ]);
+  const featuredArtists = asArrayFromKeys<UserSummary>(source, ["featuredArtists"]);
 
   return {
-    trendingTracks: asArray<TrackSummary>(source, "trendingTracks"),
-    newReleases: asArray<TrackSummary>(source, "newReleases"),
-    featuredPlaylists: asArray<PlaylistSummary>(source, "featuredPlaylists"),
-    featuredArtists: asArray<UserSummary>(source, "featuredArtists"),
+    trendingTracks,
+    newReleases,
+    featuredPlaylists,
+    featuredArtists: featuredArtists.length
+      ? featuredArtists
+      : buildFeaturedArtists([...trendingTracks, ...newReleases]),
     genres: asArray<GenreSummary>(source, "genres"),
   };
 }

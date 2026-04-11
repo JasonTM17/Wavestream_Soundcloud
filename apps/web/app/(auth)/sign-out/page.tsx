@@ -66,7 +66,7 @@ export default function SignOutPage() {
             </p>
             <p className="text-sm text-muted-foreground">
               {state === "loading"
-                ? "This keeps the refresh cookie and browser state aligned for the upcoming auth runtime."
+                ? "This keeps the refresh cookie and browser state aligned before sending you back to sign in."
                 : state === "done"
                   ? "You can continue with another account or return to discovery."
                   : "The backend did not confirm the logout. You can try again below."}

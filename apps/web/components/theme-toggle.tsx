@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -12,14 +13,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function ThemeToggle() {
-  const { setTheme } = useTheme();
+  const { resolvedTheme, setTheme, theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentMode = mounted ? theme ?? "system" : "system";
+  const currentTheme = mounted
+    ? currentMode === "system"
+      ? `system (${resolvedTheme ?? "light"})`
+      : currentMode
+    : "system";
+  const Icon = !mounted ? Sun : currentMode === "system" ? Laptop : resolvedTheme === "dark" ? Moon : Sun;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Change theme">
-          <Sun className="h-4 w-4 dark:hidden" />
-          <Moon className="hidden h-4 w-4 dark:block" />
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={`Change theme. Current theme: ${currentTheme}`}
+          title={`Current theme: ${currentTheme}`}
+        >
+          <Icon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40">

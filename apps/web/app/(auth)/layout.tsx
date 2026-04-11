@@ -1,15 +1,22 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Music4, Sparkles } from "lucide-react";
+import { Headphones, Music4, Sparkles } from "lucide-react";
 
 import { AuthPageGuard } from "@/components/protected-route";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getPublicLandingData } from "@/lib/public-api";
+import { formatCompactNumber, formatDuration } from "@/lib/wavestream-api";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { trendingTracks, newReleases } = await getPublicLandingData();
+  const spotlightTrack = trendingTracks[0] ?? newReleases[0] ?? null;
+
   return (
     <Suspense fallback={<main className="min-h-screen bg-background" />}>
       <AuthPageGuard>
@@ -37,48 +44,102 @@ export default function AuthLayout({
                   Secure auth for listeners, creators, and admins
                 </div>
                 <h1 className="text-5xl font-semibold tracking-tight text-balance">
-                  Sign in, create an account, or reset your password with a polished local flow.
+                  Sign in, create an account, or reset your password without losing the music.
                 </h1>
                 <p className="text-lg leading-8 text-white/72">
-                  WaveStream supports creator and listener onboarding, protected access for the
-                  right roles, and password reset emails through the local Mailpit setup.
+                  WaveStream supports creator and listener onboarding, role-aware access, and
+                  password reset emails through the local Mailpit setup.
                 </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild size="lg" variant="secondary" className="rounded-full">
+                    <Link href="/">
+                      <Headphones className="h-4 w-4" />
+                      Listen now
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="outline"
+                    className="rounded-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                  >
+                    <Link href="/discover">Preview the feed</Link>
+                  </Button>
+                </div>
               </div>
 
-              <div className="space-y-3 text-sm text-white/60">
-                <p>
-                  WaveStream is an original product concept. No SoundCloud branding, assets, or
-                  copy are used here.
-                </p>
-                <p>
-                  Portfolio project by Nguyễn Sơn. Built for learning, iteration, and product
-                  exploration. Feedback is welcome at{" "}
-                  <Link
-                    href="mailto:jasonbmt06@gmail.com"
-                    className="font-medium text-white underline decoration-white/30 underline-offset-4 transition hover:text-cyan-200"
-                  >
-                    jasonbmt06@gmail.com
-                  </Link>
-                  .
-                </p>
+              <div className="space-y-4">
+                <div className="rounded-[1.8rem] border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.24em] text-white/55">
+                        Featured track
+                      </p>
+                      <p className="mt-2 text-xl font-semibold">
+                        {spotlightTrack?.title ?? "Public feed loading"}
+                      </p>
+                      <p className="text-sm text-white/70">
+                        {spotlightTrack
+                          ? `${spotlightTrack.artist.displayName} / ${formatDuration(
+                              spotlightTrack.duration,
+                            )} / ${formatCompactNumber(spotlightTrack.playCount)} plays`
+                          : "Open the landing page to start listening to public seeded tracks."}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="border-white/15 bg-white/5 text-white/85"
+                    >
+                      Live catalog
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-sm text-white/60">
+                  <p>
+                    WaveStream is an original product concept. No SoundCloud branding, assets, or
+                    copy are used here.
+                  </p>
+                  <p>
+                    Portfolio project by Nguyễn Sơn. Built for learning, iteration, and product
+                    exploration. Feedback is welcome at{" "}
+                    <Link
+                      href="mailto:jasonbmt06@gmail.com"
+                      className="font-medium text-white underline decoration-white/30 underline-offset-4 transition hover:text-cyan-200"
+                    >
+                      jasonbmt06@gmail.com
+                    </Link>
+                    .
+                  </p>
+                </div>
               </div>
             </section>
 
             <section className="flex flex-col justify-center p-4 sm:p-6 lg:p-10">
               <div className="mx-auto w-full max-w-lg">
-                <div className="mb-6 flex items-center justify-between lg:hidden">
-                  <Link href="/" className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-400 text-white">
-                      <Music4 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-semibold tracking-tight">WaveStream</p>
-                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                        Creator audio platform
-                      </p>
-                    </div>
-                  </Link>
-                  <ThemeToggle />
+                <div className="mb-6 space-y-4 lg:hidden">
+                  <div className="flex items-center justify-between">
+                    <Link href="/" className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-400 text-white">
+                        <Music4 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold tracking-tight">WaveStream</p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          Creator audio platform
+                        </p>
+                      </div>
+                    </Link>
+                    <ThemeToggle />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button asChild variant="outline" className="rounded-full">
+                      <Link href="/">Listen now</Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="rounded-full">
+                      <Link href="/discover">Preview the feed</Link>
+                    </Button>
+                  </div>
                 </div>
                 {children}
               </div>

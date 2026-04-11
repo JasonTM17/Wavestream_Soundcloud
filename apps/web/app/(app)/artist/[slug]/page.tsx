@@ -280,7 +280,7 @@ export default function ArtistPage({ params }: ArtistPageProps) {
               </div>
               <p className="text-sm text-muted-foreground">
                 These stats are aggregated from the tracks and playlists already loaded on the
-                page, so the profile reads like a live creator surface instead of a mock dashboard.
+                page, so the profile reads like a live creator surface with current catalog data.
               </p>
             </CardContent>
           </Card>

@@ -110,7 +110,7 @@ export function AuthCard({
         <div className="flex items-center justify-between gap-3">
           <Badge variant="soft">WaveStream Access</Badge>
           <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-            Secure demo shell
+            Fast access
           </span>
         </div>
         <div className="space-y-2">
@@ -151,7 +151,7 @@ function SignInForm({
   return (
     <AuthCard
       title="Sign in to your studio"
-      description="Continue with your listener or creator account. The session runtime can hydrate from this payload as soon as it lands."
+      description="Continue with your listener or creator account and jump straight back into the live catalog, playlists, and creator tools."
       footer={
         <>
           New here?{" "}
@@ -235,7 +235,7 @@ function SignUpForm({
   return (
     <AuthCard
       title="Create your WaveStream profile"
-      description="Join with a listener or creator profile. Validation runs locally and the returned session is ready for the upcoming auth runtime."
+      description="Join with a listener or creator profile, then start exploring the live public feed right away."
       footer={
         <>
           Already have an account?{" "}

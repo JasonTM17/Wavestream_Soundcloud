@@ -8,10 +8,17 @@ import {
   Zap,
 } from "lucide-react";
 
+import { LandingHeroPlayButton } from "@/components/marketing/landing-hero-play-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,12 +41,16 @@ export default async function LandingPage() {
   const { trendingTracks, newReleases, featuredArtists, featuredPlaylists, genres } =
     await getPublicLandingData();
   const spotlightTrack = trendingTracks[0] ?? newReleases[0] ?? null;
+  const heroQueueTracks = trendingTracks.length ? trendingTracks : newReleases;
   const topPlayCount = Math.max(...trendingTracks.map((track) => track.playCount), 1);
   const relativeSpotlight = spotlightTrack
     ? Math.min(100, Math.max(0, Math.round((spotlightTrack.playCount / topPlayCount) * 100)))
     : 0;
   const totalSpotlightPlays = trendingTracks.reduce((sum, track) => sum + track.playCount, 0);
-  const totalCreatorTracks = featuredArtists.reduce((sum, artist) => sum + (artist.trackCount ?? 0), 0);
+  const totalCreatorTracks = featuredArtists.reduce(
+    (sum, artist) => sum + (artist.trackCount ?? 0),
+    0,
+  );
 
   return (
     <main className="relative overflow-hidden">
@@ -82,12 +93,15 @@ export default async function LandingPage() {
         <div className="space-y-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-4 py-2 text-sm shadow-sm backdrop-blur">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>Live discovery rails, creator profiles, and playlist curation from the public API.</span>
+            <span>
+              Hear real seeded tracks right away, then move into discovery, playlists, and
+              creator workflows.
+            </span>
           </div>
 
           <div className="space-y-6">
             <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
-              Build, share, and discover audio with a studio-grade listening experience.
+              Build, share, and hear audio with a studio-grade listening experience.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
               WaveStream gives creators a polished home for uploads, playlists, comments,
@@ -97,16 +111,20 @@ export default async function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button asChild size="lg" className="rounded-full px-6">
-              <Link href="/sign-up">
-                Get started free
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <LandingHeroPlayButton
+              spotlightTrack={spotlightTrack}
+              queueTracks={heroQueueTracks}
+            />
             <Button asChild size="lg" variant="outline" className="rounded-full px-6">
               <Link href="/discover">
                 <Play className="h-4 w-4" />
                 Explore discovery
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="ghost" className="rounded-full px-6">
+              <Link href="/sign-up">
+                Create your account
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -153,7 +171,9 @@ export default async function LandingPage() {
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline">Public feed</Badge>
+                <Badge variant="outline">
+                  {spotlightTrack ? "Ready to hear" : "Waiting for seed data"}
+                </Badge>
               </div>
               <div className="mt-5 space-y-3">
                 <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -193,7 +213,7 @@ export default async function LandingPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{track.title}</p>
                         <p className="truncate text-sm text-muted-foreground">
-                          {track.artist.displayName} · {track.genre?.name ?? "Uncategorized"}
+                          {track.artist.displayName} / {track.genre?.name ?? "Uncategorized"}
                         </p>
                       </div>
                       <div className="text-right text-sm text-muted-foreground">
@@ -223,7 +243,9 @@ export default async function LandingPage() {
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{artist.displayName}</p>
-                        <p className="truncate text-sm text-muted-foreground">@{artist.username}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          @{artist.username}
+                        </p>
                       </div>
                       <Badge variant="soft">
                         {formatCompactNumber(artist.trackCount ?? 0)} tracks
@@ -289,11 +311,14 @@ export default async function LandingPage() {
             <CardContent className="grid gap-4 md:grid-cols-2">
               {[
                 ["Discovery feed", "Trending, new releases, followed reposts, and genre rails."],
-                ["Creator tools", "Upload flows, draft state, edit/delete controls, and analytics."],
+                ["Creator tools", "Upload flows, draft state, edit and delete controls, and analytics."],
                 ["Playback shell", "Queue, repeat, speed, volume, and a persistent bottom player."],
-                ["Trust & safety", "Protected routes, moderation hooks, and report surfaces."],
+                ["Trust and safety", "Protected routes, moderation hooks, and report surfaces."],
               ].map(([title, description]) => (
-                <div key={title} className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                <div
+                  key={title}
+                  className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                >
                   <p className="font-medium">{title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
                 </div>
@@ -316,7 +341,9 @@ export default async function LandingPage() {
                   </Badge>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">Genre tags appear once discovery data loads.</p>
+                <p className="text-sm text-muted-foreground">
+                  Genre tags appear once discovery data loads.
+                </p>
               )}
             </CardContent>
           </Card>

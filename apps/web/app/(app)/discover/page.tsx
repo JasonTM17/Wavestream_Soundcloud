@@ -81,8 +81,8 @@ export default function DiscoverPage() {
               Trending tracks, creator reposts, and fresh releases.
             </CardTitle>
             <CardDescription className="max-w-2xl text-base">
-              WaveStream now reads from the live discovery API, so the feed reflects actual plays,
-              uploads, and public playlists instead of placeholder content.
+              WaveStream reads from the live discovery API, so the feed reflects actual plays,
+              uploads, and public playlists from the seeded catalog.
             </CardDescription>
           </CardHeader>
           <CardContent className="relative flex flex-wrap items-center gap-3">

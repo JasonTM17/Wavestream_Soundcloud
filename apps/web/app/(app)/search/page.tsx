@@ -87,7 +87,7 @@ export default function SearchPage() {
           <CardTitle>Search</CardTitle>
           <CardDescription>
             Live search covers tracks, artists, playlists, and genres with real client-side result
-            scopes instead of placeholder filters.
+            scopes wired to the current catalog.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
