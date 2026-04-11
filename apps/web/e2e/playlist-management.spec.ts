@@ -81,7 +81,10 @@ async function signIn(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(loginPayload),
+      body: JSON.stringify({
+        success: true,
+        data: loginPayload.data?.user ?? null,
+      }),
     });
   });
 
