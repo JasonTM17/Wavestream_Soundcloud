@@ -1,4 +1,12 @@
-import { TrackPrivacy, TrackStatus } from "@wavestream/shared";
+import {
+  AdminActionType,
+  ReportStatus,
+  ReportableType,
+  TrackPrivacy,
+  TrackStatus,
+  UserRole,
+  type AdminOverviewDto,
+} from "@wavestream/shared";
 
 import { ApiError, apiRequest, type RequestAuthMode } from "@/lib/api";
 
@@ -181,6 +189,131 @@ export type NotificationSummary = {
   createdAt: string;
 };
 
+export type PaginatedApiResponse<T> = {
+  data: T[];
+  meta?: ApiPaginationMeta;
+};
+
+export type AdminOverviewSummary = AdminOverviewDto;
+
+export type AdminUserSummary = {
+  id: string;
+  email?: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  followerCount: number;
+  followingCount: number;
+  trackCount: number;
+  playlistCount: number;
+  deletedAt: string | null;
+  createdAt: string;
+};
+
+export type AdminTrackSummary = {
+  id: string;
+  title: string;
+  artistId: string;
+  artistName: string;
+  status: TrackStatus;
+  privacy: TrackPrivacy;
+  playCount: number;
+  likeCount: number;
+  repostCount: number;
+  commentCount: number;
+  hiddenReason: string | null;
+  deletedAt: string | null;
+  updatedAt: string;
+};
+
+export type AdminPlaylistSummary = {
+  id: string;
+  title: string;
+  ownerId: string;
+  ownerName: string;
+  isPublic: boolean;
+  trackCount: number;
+  totalDuration: number;
+  deletedAt: string | null;
+  updatedAt: string;
+};
+
+export type AdminCommentSummary = {
+  id: string;
+  body: string;
+  userId: string;
+  username: string;
+  trackId: string;
+  trackTitle: string;
+  isHidden: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+};
+
+export type AdminReportSummary = {
+  id: string;
+  reportableType: ReportableType;
+  reportableId: string;
+  reason: string;
+  details: string | null;
+  status: ReportStatus;
+  reporter: string;
+  resolvedBy: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type AdminAuditLogSummary = {
+  id: string;
+  admin: string;
+  action: AdminActionType;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type CreateReportInput = {
+  reportableType: ReportableType;
+  reportableId: string;
+  reason: string;
+  details?: string | null;
+};
+
+export type CreateReportResult = {
+  id: string;
+  status: ReportStatus;
+  createdAt: string;
+};
+
+export type ModerationNoteInput = {
+  reason?: string;
+};
+
+export type ResolveReportInput = {
+  status: ReportStatus;
+  note?: string;
+};
+
+export type ResolveReportResult = {
+  id: string;
+  status: ReportStatus;
+  resolvedAt: string;
+};
+
+export type UpdateUserRoleInput = {
+  role: UserRole;
+};
+
+export type UpdateUserRoleResult = {
+  id: string;
+  role: UserRole;
+};
+
+export type ModerationToggleResult = {
+  hidden: boolean;
+};
+
 export type ListeningHistoryItem = {
   playedAt: string;
   track: TrackSummary;
@@ -285,6 +418,21 @@ function getArrayPayload<T>(payload: unknown, key: string): T[] {
   }
 
   return [];
+}
+
+function getPaginatedPayload<T>(payload: unknown): PaginatedApiResponse<T> {
+  if (Array.isArray(payload)) {
+    return { data: payload as T[] };
+  }
+
+  if (isObject(payload) && Array.isArray(payload.data)) {
+    return {
+      data: payload.data as T[],
+      meta: isObject(payload.meta) ? (payload.meta as ApiPaginationMeta) : undefined,
+    };
+  }
+
+  return { data: [] };
 }
 
 export const formatDuration = (seconds?: number | null) => {
@@ -534,6 +682,175 @@ export async function getTrackAnalytics(idOrSlug: string) {
   return apiGet<TrackAnalyticsSummary>(
     `/api/me/tracks/${encodeURIComponent(idOrSlug)}/analytics`,
     "required",
+  );
+}
+
+export async function getAdminOverview() {
+  return apiGet<AdminOverviewSummary>("/api/admin/overview", "required");
+}
+
+export async function getAdminUsers(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<AdminUserSummary[] | PaginatedApiResponse<AdminUserSummary>>(
+    `/api/admin/users${params.size ? `?${params.toString()}` : ""}`,
+    "required",
+  );
+  return getPaginatedPayload<AdminUserSummary>(response);
+}
+
+export async function getAdminTracks(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<AdminTrackSummary[] | PaginatedApiResponse<AdminTrackSummary>>(
+    `/api/admin/tracks${params.size ? `?${params.toString()}` : ""}`,
+    "required",
+  );
+  return getPaginatedPayload<AdminTrackSummary>(response);
+}
+
+export async function getAdminPlaylists(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<
+    AdminPlaylistSummary[] | PaginatedApiResponse<AdminPlaylistSummary>
+  >(`/api/admin/playlists${params.size ? `?${params.toString()}` : ""}`, "required");
+  return getPaginatedPayload<AdminPlaylistSummary>(response);
+}
+
+export async function getAdminComments(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<AdminCommentSummary[] | PaginatedApiResponse<AdminCommentSummary>>(
+    `/api/admin/comments${params.size ? `?${params.toString()}` : ""}`,
+    "required",
+  );
+  return getPaginatedPayload<AdminCommentSummary>(response);
+}
+
+export async function getAdminReports(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<AdminReportSummary[] | PaginatedApiResponse<AdminReportSummary>>(
+    `/api/admin/reports${params.size ? `?${params.toString()}` : ""}`,
+    "required",
+  );
+  return getPaginatedPayload<AdminReportSummary>(response);
+}
+
+export async function getAdminAuditLogs(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<
+    AdminAuditLogSummary[] | PaginatedApiResponse<AdminAuditLogSummary>
+  >(`/api/admin/audit-logs${params.size ? `?${params.toString()}` : ""}`, "required");
+  return getPaginatedPayload<AdminAuditLogSummary>(response);
+}
+
+export async function createReport(input: CreateReportInput) {
+  return apiRequest<CreateReportResult>("/api/reports", {
+    method: "POST",
+    auth: "required",
+    body: input,
+  });
+}
+
+export async function getMyReports(query: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+
+  const response = await apiGet<AdminReportSummary[] | PaginatedApiResponse<AdminReportSummary>>(
+    `/api/reports/me${params.size ? `?${params.toString()}` : ""}`,
+    "required",
+  );
+  return getPaginatedPayload<AdminReportSummary>(response);
+}
+
+export async function updateAdminUserRole(userId: string, input: UpdateUserRoleInput) {
+  return apiRequest<UpdateUserRoleResult>(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    method: "PATCH",
+    auth: "required",
+    body: input,
+  });
+}
+
+export async function hideAdminTrack(trackId: string, input: ModerationNoteInput = {}) {
+  return apiRequest<ModerationToggleResult>(
+    `/api/admin/tracks/${encodeURIComponent(trackId)}/hide`,
+    {
+      method: "PATCH",
+      auth: "required",
+      body: input,
+    },
+  );
+}
+
+export async function restoreAdminTrack(trackId: string) {
+  return apiRequest<ModerationToggleResult>(
+    `/api/admin/tracks/${encodeURIComponent(trackId)}/restore`,
+    {
+      method: "PATCH",
+      auth: "required",
+    },
+  );
+}
+
+export async function deleteAdminPlaylist(
+  playlistId: string,
+  input: ModerationNoteInput = {},
+) {
+  return apiRequest<DeletePlaylistResult>(
+    `/api/admin/playlists/${encodeURIComponent(playlistId)}`,
+    {
+      method: "DELETE",
+      auth: "required",
+      body: input,
+    },
+  );
+}
+
+export async function hideAdminComment(commentId: string, input: ModerationNoteInput = {}) {
+  return apiRequest<ModerationToggleResult>(
+    `/api/admin/comments/${encodeURIComponent(commentId)}/hide`,
+    {
+      method: "PATCH",
+      auth: "required",
+      body: input,
+    },
+  );
+}
+
+export async function restoreAdminComment(commentId: string) {
+  return apiRequest<ModerationToggleResult>(
+    `/api/admin/comments/${encodeURIComponent(commentId)}/restore`,
+    {
+      method: "PATCH",
+      auth: "required",
+    },
+  );
+}
+
+export async function resolveAdminReport(reportId: string, input: ResolveReportInput) {
+  return apiRequest<ResolveReportResult>(
+    `/api/admin/reports/${encodeURIComponent(reportId)}/resolve`,
+    {
+      method: "PATCH",
+      auth: "required",
+      body: input,
+    },
   );
 }
 

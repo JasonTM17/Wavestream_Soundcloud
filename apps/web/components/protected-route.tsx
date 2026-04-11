@@ -9,7 +9,7 @@ import { useAuthSession } from "@/lib/auth-store";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
-  requireRole?: "creator";
+  requireRole?: "creator" | "admin";
 };
 
 function buildReturnTo(pathname: string, searchParams: { toString(): string }) {
@@ -68,8 +68,10 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
     () => `/sign-in?next=${encodeURIComponent(currentPath)}`,
     [currentPath],
   );
+  const hasAdminAccess = user?.role === UserRole.ADMIN;
   const hasCreatorAccess = user?.role === UserRole.CREATOR || user?.role === UserRole.ADMIN;
   const requiresCreatorAccess = requireRole === "creator";
+  const requiresAdminAccess = requireRole === "admin";
 
   React.useEffect(() => {
     setHasMounted(true);
@@ -86,12 +88,29 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
       return;
     }
 
+    if (requiresAdminAccess && !hasAdminAccess) {
+      redirectingRef.current = true;
+      toast.error("Admin access required.");
+      router.replace("/discover");
+      return;
+    }
+
     if (requiresCreatorAccess && !hasCreatorAccess) {
       redirectingRef.current = true;
       toast.error("Creator access required.");
       router.replace("/discover");
     }
-  }, [hasCreatorAccess, hasMounted, isAuthenticated, requiresCreatorAccess, router, signInTarget, status]);
+  }, [
+    hasAdminAccess,
+    hasCreatorAccess,
+    hasMounted,
+    isAuthenticated,
+    requiresAdminAccess,
+    requiresCreatorAccess,
+    router,
+    signInTarget,
+    status,
+  ]);
 
   if (!hasMounted || isBooting) {
     return (
@@ -107,6 +126,15 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
       <GateScreen
         title="Redirecting to sign in"
         description="This area requires an authenticated session."
+      />
+    );
+  }
+
+  if (requiresAdminAccess && !hasAdminAccess) {
+    return (
+      <GateScreen
+        title="Redirecting to Discover"
+        description="Admin access is required for this moderation area."
       />
     );
   }

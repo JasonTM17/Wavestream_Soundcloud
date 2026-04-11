@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Shield,
   Compass,
   BellRing,
   LibraryBig,
@@ -29,7 +30,7 @@ import { useCurrentUserQuery, useNotificationsQuery } from "@/lib/wavestream-que
 import { usePlayerStore } from "@/lib/player-store";
 import { cn } from "@/lib/utils";
 
-const navigation = [
+const baseNavigation = [
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "Library", icon: LibraryBig },
@@ -46,6 +47,13 @@ export function AppShell({ children }: React.PropsWithChildren) {
   const notifications = useNotificationsQuery();
   const user = sessionUser ?? currentUser.data ?? null;
   const unreadCount = (notifications.data ?? []).filter((item) => !item.read).length;
+  const navigation = React.useMemo(
+    () =>
+      user?.role === "admin"
+        ? [...baseNavigation, { href: "/admin", label: "Admin", icon: Shield }]
+        : baseNavigation,
+    [user?.role],
+  );
 
   const signInHref = `/sign-in?next=${encodeURIComponent(pathname)}`;
 
@@ -236,6 +244,14 @@ export function AppShell({ children }: React.PropsWithChildren) {
                     {isAuthenticated ? "Upload a track" : "Creator dashboard"}
                   </Link>
                 </Button>
+                {user?.role === "admin" ? (
+                  <Button asChild variant="outline" className="w-full justify-start rounded-2xl">
+                    <Link href="/admin">
+                      <Shield className="h-4 w-4" />
+                      Open admin hub
+                    </Link>
+                  </Button>
+                ) : null}
                 <Button asChild variant="outline" className="w-full justify-start rounded-2xl">
                   <Link href="/discover">
                     <Compass className="h-4 w-4" />

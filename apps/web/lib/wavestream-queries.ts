@@ -10,10 +10,20 @@ import {
   addTrackToPlaylist,
   buildCreateTrackFormData,
   buildUpdateTrackPayload,
+  createReport,
   createPlaylist,
   canIgnoreApiError,
+  deleteAdminPlaylist,
   deletePlaylist,
+  getAdminAuditLogs,
+  getAdminComments,
+  getAdminOverview,
+  getAdminPlaylists,
+  getAdminReports,
+  getAdminTracks,
+  getAdminUsers,
   getMyPlaylists,
+  getMyReports,
   getCurrentUser,
   getCreatorDashboard,
   getDiscoveryResults,
@@ -30,24 +40,46 @@ import {
   getTrackComments,
   getTracks,
   getUserProfile,
+  hideAdminComment,
+  hideAdminTrack,
+  resolveAdminReport,
+  restoreAdminComment,
+  restoreAdminTrack,
   type CreateTrackInput,
   type AddTrackToPlaylistInput,
   type CreatePlaylistInput,
+  type CreateReportInput,
+  type AdminAuditLogSummary,
+  type AdminCommentSummary,
+  type AdminOverviewSummary,
+  type AdminPlaylistSummary,
+  type AdminReportSummary,
+  type AdminTrackSummary,
+  type AdminUserSummary,
   type DiscoveryResults,
   type DeleteTrackResult,
   type DeletePlaylistResult,
   type ListeningHistoryItem,
+  type ModerationNoteInput,
   type NotificationSummary,
   type PlaylistSummary,
+  type PaginatedApiResponse,
   type SearchResults,
+  type ResolveReportInput,
   type ReorderPlaylistTracksInput,
   type TrackSummary,
   type UpdateTrackInput,
   type UpdatePlaylistInput,
+  type UpdateUserRoleInput,
   type UserSummary,
+  type CreateReportResult,
+  type ResolveReportResult,
+  type UpdateUserRoleResult,
+  type ModerationToggleResult,
   removeTrackFromPlaylist,
   reorderPlaylistTracks,
   updatePlaylist,
+  updateAdminUserRole,
 } from "@/lib/wavestream-api";
 import { apiRequest } from "@/lib/api";
 
@@ -389,6 +421,181 @@ export function useMyPlaylistsQuery() {
   });
 }
 
+export function useAdminOverviewQuery() {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "overview"],
+    queryFn: async (): Promise<AdminOverviewSummary | null> => {
+      try {
+        return await getAdminOverview();
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminUsersQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "users", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminUserSummary>> => {
+      try {
+        return await getAdminUsers(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminTracksQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "tracks", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminTrackSummary>> => {
+      try {
+        return await getAdminTracks(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminPlaylistsQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "playlists", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminPlaylistSummary>> => {
+      try {
+        return await getAdminPlaylists(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminCommentsQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "comments", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminCommentSummary>> => {
+      try {
+        return await getAdminComments(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminReportsQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "reports", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminReportSummary>> => {
+      try {
+        return await getAdminReports(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useAdminAuditLogsQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated, user } = useAuthSession();
+  const isAdmin = user?.role === "admin";
+
+  return useQuery({
+    queryKey: ["admin", "audit-logs", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminAuditLogSummary>> => {
+      try {
+        return await getAdminAuditLogs(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated && isAdmin,
+  });
+}
+
+export function useMyReportsQuery(filters: { page?: number; limit?: number } = {}) {
+  const { isAuthenticated } = useAuthSession();
+
+  return useQuery({
+    queryKey: ["reports", "me", filters.page ?? null, filters.limit ?? null],
+    queryFn: async (): Promise<PaginatedApiResponse<AdminReportSummary>> => {
+      try {
+        return await getMyReports(filters);
+      } catch (error) {
+        if (canIgnoreApiError(error)) {
+          return { data: [] };
+        }
+        throw error;
+      }
+    },
+    staleTime: 15_000,
+    retry: false,
+    enabled: isAuthenticated,
+  });
+}
+
 const invalidateTrackMutationQueries = async (
   queryClient: ReturnType<typeof useQueryClient>,
   trackIdOrSlug?: string,
@@ -445,6 +652,25 @@ const invalidatePlaylistMutationQueries = async (
   }
 
   await Promise.all(invalidations);
+};
+
+const invalidateAdminMutationQueries = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+) => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["admin"] }),
+    queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+    queryClient.invalidateQueries({ queryKey: ["me", "dashboard"] }),
+    queryClient.invalidateQueries({ queryKey: ["me", "uploads"] }),
+    queryClient.invalidateQueries({ queryKey: ["track"] }),
+    queryClient.invalidateQueries({ queryKey: ["tracks"] }),
+    queryClient.invalidateQueries({ queryKey: ["playlist"] }),
+    queryClient.invalidateQueries({ queryKey: ["playlists"] }),
+    queryClient.invalidateQueries({ queryKey: ["artist"] }),
+    queryClient.invalidateQueries({ queryKey: ["discovery", "home"] }),
+    queryClient.invalidateQueries({ queryKey: ["search"] }),
+  ]);
 };
 
 export function useCreateTrackMutation() {
@@ -526,6 +752,103 @@ export function useDeletePlaylistMutation(playlistIdOrSlug: string) {
       deletePlaylist(playlistIdOrSlug),
     onSuccess: async () => {
       await invalidatePlaylistMutationQueries(queryClient, playlistIdOrSlug);
+    },
+  });
+}
+
+export function useUpdateAdminUserRoleMutation(userId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateUserRoleInput): Promise<UpdateUserRoleResult> =>
+      updateAdminUserRole(userId, input),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useHideAdminTrackMutation(trackId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ModerationNoteInput = {}): Promise<ModerationToggleResult> =>
+      hideAdminTrack(trackId, input),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useRestoreAdminTrackMutation(trackId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<ModerationToggleResult> => restoreAdminTrack(trackId),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useDeleteAdminPlaylistMutation(playlistId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ModerationNoteInput = {}): Promise<DeletePlaylistResult> =>
+      deleteAdminPlaylist(playlistId, input),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useHideAdminCommentMutation(commentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ModerationNoteInput = {}): Promise<ModerationToggleResult> =>
+      hideAdminComment(commentId, input),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useRestoreAdminCommentMutation(commentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<ModerationToggleResult> => restoreAdminComment(commentId),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useResolveAdminReportMutation(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ResolveReportInput): Promise<ResolveReportResult> =>
+      resolveAdminReport(reportId, input),
+    onSuccess: async () => {
+      await invalidateAdminMutationQueries(queryClient);
+    },
+  });
+}
+
+export function useCreateReportMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateReportInput): Promise<CreateReportResult> =>
+      createReport(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["reports"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+      ]);
     },
   });
 }
