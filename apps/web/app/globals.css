@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: 38 38% 97%;
-  --foreground: 224 35% 13%;
+  --background: 210 36% 98%;
+  --foreground: 224 38% 14%;
   --card: 0 0% 100%;
-  --card-foreground: 224 35% 13%;
+  --card-foreground: 224 38% 14%;
   --popover: 0 0% 100%;
-  --popover-foreground: 224 35% 13%;
-  --primary: 195 92% 42%;
+  --popover-foreground: 224 38% 14%;
+  --primary: 196 94% 43%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 157 52% 42%;
+  --secondary: 159 58% 38%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 220 18% 93%;
-  --muted-foreground: 225 16% 44%;
-  --accent: 44 92% 56%;
+  --muted: 214 30% 93%;
+  --muted-foreground: 223 18% 33%;
+  --accent: 42 94% 58%;
   --accent-foreground: 223 40% 12%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 223 22% 86%;
-  --input: 223 22% 86%;
-  --ring: 195 92% 42%;
+  --border: 221 24% 82%;
+  --input: 221 24% 82%;
+  --ring: 196 94% 43%;
   --radius: 1.5rem;
 }
 
@@ -52,25 +52,25 @@
 }
 
 html.dark {
-  --background: 225 39% 8%;
+  --background: 224 40% 9%;
   --foreground: 210 25% 96%;
-  --card: 225 30% 11%;
+  --card: 224 28% 12%;
   --card-foreground: 210 25% 96%;
-  --popover: 225 30% 11%;
+  --popover: 224 28% 12%;
   --popover-foreground: 210 25% 96%;
-  --primary: 195 92% 42%;
+  --primary: 196 94% 43%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 157 35% 34%;
+  --secondary: 159 48% 34%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 226 27% 17%;
-  --muted-foreground: 219 12% 65%;
+  --muted: 224 22% 17%;
+  --muted-foreground: 218 15% 74%;
   --accent: 44 82% 58%;
   --accent-foreground: 224 35% 13%;
   --destructive: 0 74% 48%;
   --destructive-foreground: 0 0% 100%;
-  --border: 226 24% 19%;
-  --input: 226 24% 19%;
-  --ring: 195 92% 42%;
+  --border: 223 18% 24%;
+  --input: 223 18% 24%;
+  --ring: 196 94% 43%;
 }
 
 * {
@@ -93,9 +93,13 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-space-grotesk), sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(38, 189, 255, 0.11), transparent 30%),
-    radial-gradient(circle at top right, rgba(239, 197, 90, 0.13), transparent 26%),
-    linear-gradient(180deg, hsl(var(--background)), color-mix(in hsl, hsl(var(--background)), white 6%));
+    radial-gradient(circle at top left, rgba(38, 189, 255, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(239, 197, 90, 0.12), transparent 24%),
+    linear-gradient(
+      180deg,
+      hsl(var(--background)),
+      color-mix(in hsl, hsl(var(--background)), white 4%)
+    );
   background-attachment: fixed;
   transition:
     background-color 180ms ease,
@@ -105,9 +109,13 @@ body {
 
 html.dark body {
   background:
-    radial-gradient(circle at top left, rgba(38, 189, 255, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(239, 197, 90, 0.1), transparent 24%),
-    linear-gradient(180deg, hsl(var(--background)), color-mix(in hsl, hsl(var(--background)), black 10%));
+    radial-gradient(circle at top left, rgba(38, 189, 255, 0.2), transparent 30%),
+    radial-gradient(circle at top right, rgba(239, 197, 90, 0.11), transparent 22%),
+    linear-gradient(
+      180deg,
+      hsl(var(--background)),
+      color-mix(in hsl, hsl(var(--background)), black 8%)
+    );
 }
 
 a {

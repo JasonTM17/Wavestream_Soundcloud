@@ -20,8 +20,8 @@ export function SiteCredits({
       className={cn(
         "flex flex-col gap-3 rounded-[2rem] border px-5 py-4 text-sm shadow-[0_20px_60px_-35px_rgba(10,13,25,0.35)] sm:flex-row sm:items-center sm:justify-between",
         inverted
-          ? "border-white/10 bg-white/5 text-white/70"
-          : "border-border/70 bg-background/70 text-muted-foreground",
+          ? "border-white/12 bg-white/8 text-white/72"
+          : "border-border/80 bg-card/92 text-muted-foreground",
         className,
       )}
     >
@@ -39,8 +39,8 @@ export function SiteCredits({
         className={cn(
           "inline-flex items-center justify-center rounded-full border px-4 py-2 font-medium transition",
           inverted
-            ? "border-white/20 text-white hover:border-cyan-300/40 hover:text-cyan-200"
-            : "border-border bg-card text-foreground hover:border-primary/40 hover:text-primary",
+            ? "border-white/24 bg-white/10 text-white hover:border-cyan-300/40 hover:bg-white/14 hover:text-cyan-100"
+            : "border-border/85 bg-background/90 text-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground",
           emailClassName,
         )}
       >

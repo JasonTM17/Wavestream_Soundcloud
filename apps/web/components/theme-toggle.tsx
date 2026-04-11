@@ -3,8 +3,9 @@
 import * as React from "react";
 import { Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import type { VariantProps } from "class-variance-authority";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function ThemeToggle() {
+type ThemeToggleProps = {
+  className?: string;
+  size?: VariantProps<typeof buttonVariants>["size"];
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+};
+
+export function ThemeToggle({
+  className,
+  size = "icon",
+  variant = "outline",
+}: ThemeToggleProps = {}) {
   const { resolvedTheme, setTheme, theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -32,8 +43,9 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
-          size="icon"
+          variant={variant}
+          size={size}
+          className={className}
           aria-label={`Change theme. Current theme: ${currentTheme}`}
           title={`Current theme: ${currentTheme}`}
         >
