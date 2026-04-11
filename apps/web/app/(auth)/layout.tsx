@@ -3,9 +3,10 @@ import Link from "next/link";
 import { Headphones, Music4, Sparkles } from "lucide-react";
 
 import { AuthPageGuard } from "@/components/protected-route";
+import { SiteCredits } from "@/components/site-credits";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { getPublicLandingData } from "@/lib/public-api";
 import { formatCompactNumber, formatDuration } from "@/lib/wavestream-api";
 
@@ -21,8 +22,8 @@ export default async function AuthLayout({
     <Suspense fallback={<main className="min-h-screen bg-background" />}>
       <AuthPageGuard>
         <main className="min-h-screen px-4 py-6 lg:px-6">
-          <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/70 bg-card/60 shadow-[0_30px_80px_-35px_rgba(10,13,25,0.45)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
-            <section className="hidden flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(38,189,255,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(239,197,90,0.16),transparent_30%),linear-gradient(180deg,rgba(7,11,24,0.96),rgba(14,22,40,0.9))] p-8 text-white lg:flex">
+          <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/85 bg-card/92 shadow-[0_30px_80px_-35px_rgba(10,13,25,0.42)] backdrop-blur-xl lg:grid-cols-[0.92fr_1.08fr]">
+            <section className="hidden flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(38,189,255,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(239,197,90,0.14),transparent_30%),linear-gradient(180deg,rgba(7,11,24,0.97),rgba(14,22,40,0.92))] p-8 text-white lg:flex">
               <div className="flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
@@ -35,20 +36,22 @@ export default async function AuthLayout({
                     </p>
                   </div>
                 </Link>
-                <ThemeToggle />
+                <ThemeToggle
+                  className="border-white/18 bg-white/10 text-white shadow-sm hover:border-white/22 hover:bg-white/16 hover:text-white"
+                />
               </div>
 
               <div className="max-w-xl space-y-6">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm text-white/88 shadow-sm backdrop-blur">
                   <Sparkles className="h-4 w-4 text-cyan-300" />
                   Secure auth for listeners, creators, and admins
                 </div>
                 <h1 className="text-5xl font-semibold tracking-tight text-balance">
-                  Sign in, create an account, or reset your password without losing the music.
+                  Sign in, create an account, or reset your password with a polished local flow.
                 </h1>
-                <p className="text-lg leading-8 text-white/72">
-                  WaveStream supports creator and listener onboarding, role-aware access, and
-                  password reset emails through the local Mailpit setup.
+                <p className="text-lg leading-8 text-white/76">
+                  WaveStream supports creator and listener onboarding, protected access for the
+                  right roles, and password reset emails through the local Mailpit setup.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Button asChild size="lg" variant="secondary" className="rounded-full">
@@ -61,7 +64,7 @@ export default async function AuthLayout({
                     asChild
                     size="lg"
                     variant="outline"
-                    className="rounded-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                    className="rounded-full border-white/18 bg-white/8 text-white shadow-sm hover:bg-white/14 hover:text-white"
                   >
                     <Link href="/discover">Preview the feed</Link>
                   </Button>
@@ -69,16 +72,16 @@ export default async function AuthLayout({
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-[1.8rem] border border-white/10 bg-white/5 p-5">
+                <div className="rounded-[1.8rem] border border-white/12 bg-white/8 p-5 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.45)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm uppercase tracking-[0.24em] text-white/55">
+                      <p className="text-sm uppercase tracking-[0.24em] text-white/58">
                         Featured track
                       </p>
                       <p className="mt-2 text-xl font-semibold">
                         {spotlightTrack?.title ?? "Public feed loading"}
                       </p>
-                      <p className="text-sm text-white/70">
+                      <p className="text-sm text-white/72">
                         {spotlightTrack
                           ? `${spotlightTrack.artist.displayName} / ${formatDuration(
                               spotlightTrack.duration,
@@ -88,30 +91,14 @@ export default async function AuthLayout({
                     </div>
                     <Badge
                       variant="outline"
-                      className="border-white/15 bg-white/5 text-white/85"
+                      className="border-white/15 bg-white/8 text-white/88"
                     >
                       Live catalog
                     </Badge>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-sm text-white/60">
-                  <p>
-                    WaveStream is an original product concept. No SoundCloud branding, assets, or
-                    copy are used here.
-                  </p>
-                  <p>
-                    Portfolio project by Nguyễn Sơn. Built for learning, iteration, and product
-                    exploration. Feedback is welcome at{" "}
-                    <Link
-                      href="mailto:jasonbmt06@gmail.com"
-                      className="font-medium text-white underline decoration-white/30 underline-offset-4 transition hover:text-cyan-200"
-                    >
-                      jasonbmt06@gmail.com
-                    </Link>
-                    .
-                  </p>
-                </div>
+                <SiteCredits inverted />
               </div>
             </section>
 
@@ -136,12 +123,13 @@ export default async function AuthLayout({
                     <Button asChild variant="outline" className="rounded-full">
                       <Link href="/">Listen now</Link>
                     </Button>
-                    <Button asChild variant="ghost" className="rounded-full">
+                    <Button asChild variant="secondary" className="rounded-full">
                       <Link href="/discover">Preview the feed</Link>
                     </Button>
                   </div>
                 </div>
                 {children}
+                <SiteCredits className="mt-6 lg:hidden" />
               </div>
             </section>
           </div>

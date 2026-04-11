@@ -70,11 +70,11 @@ export function AppShell({ children }: React.PropsWithChildren) {
   }, [logout]);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsla(195,92%,42%,0.12),transparent_28%),radial-gradient(circle_at_top_right,_hsla(44,92%,56%,0.14),transparent_26%),linear-gradient(180deg,var(--background),color-mix(in_hsl,var(--background),white_6%))] text-foreground">
+    <div className="min-h-screen bg-transparent text-foreground">
       <div className="mx-auto grid min-h-screen max-w-[1600px] gap-6 px-4 pb-40 pt-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-6 lg:pb-36">
         <aside className="hidden lg:block">
           <div className="sticky top-4 space-y-4">
-            <div className="rounded-[2rem] border border-border/80 bg-card/85 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl">
+            <div className="rounded-[2rem] border border-border/85 bg-card/92 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.42)] backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-400 text-white shadow-lg">
@@ -101,7 +101,10 @@ export function AppShell({ children }: React.PropsWithChildren) {
                       key={item.href}
                       asChild
                       variant={active ? "default" : "ghost"}
-                      className={cn("w-full justify-start rounded-2xl px-4 py-3", active ? "" : "text-muted-foreground")}
+                      className={cn(
+                        "w-full justify-start rounded-2xl px-4 py-3",
+                        active ? "" : "text-foreground/78 hover:text-foreground",
+                      )}
                     >
                       <Link href={item.href}>
                         <Icon className="h-4 w-4" />
@@ -112,7 +115,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
                 })}
               </nav>
 
-              <div className="mt-5 rounded-[1.5rem] border border-border/70 bg-background/70 p-4">
+              <div className="mt-5 rounded-[1.5rem] border border-border/80 bg-background/86 p-4 shadow-sm">
                 <Badge variant="soft">{queueLength > 0 ? "Queue ready" : "Queue empty"}</Badge>
                 <p className="mt-3 text-sm text-muted-foreground">
                   {queueLength > 0
@@ -122,7 +125,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-border/80 bg-card/85 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl">
+            <div className="rounded-[2rem] border border-border/85 bg-card/92 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.42)] backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">Featured creator</p>
@@ -163,7 +166,11 @@ export function AppShell({ children }: React.PropsWithChildren) {
                       <p className="text-sm text-muted-foreground">
                         Sign in to unlock your queue, notifications, and creator analytics.
                       </p>
-                      <Button asChild variant="outline" className="w-full justify-start rounded-2xl">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full justify-start rounded-2xl"
+                      >
                         <Link href={signInHref}>
                           <LogOut className="h-4 w-4" />
                           Sign in
@@ -178,7 +185,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
         </aside>
 
         <div className="space-y-4">
-          <header className="sticky top-4 z-30 rounded-[2rem] border border-border/80 bg-card/80 px-4 py-3 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl lg:hidden">
+          <header className="sticky top-4 z-30 rounded-[2rem] border border-border/85 bg-card/90 px-4 py-3 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.38)] backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-400 text-white">
@@ -192,7 +199,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ThemeToggle />
+                <ThemeToggle className="shadow-sm" />
                 <Button asChild variant="outline" size="icon" aria-label="Profile menu">
                   <Link href={user ? `/artist/${user.username}` : signInHref}>
                     <UserCircle2 className="h-4 w-4" />
@@ -231,7 +238,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
 
         <div className="hidden xl:block">
           <div className="sticky top-4 space-y-4">
-            <div className="rounded-[2rem] border border-border/80 bg-card/85 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl">
+            <div className="rounded-[2rem] border border-border/85 bg-card/92 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.42)] backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">Quick actions</p>
@@ -265,7 +272,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-border/80 bg-card/85 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl">
+            <div className="rounded-[2rem] border border-border/85 bg-card/92 p-5 shadow-[0_18px_50px_-28px_rgba(10,13,25,0.42)] backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">Account</p>

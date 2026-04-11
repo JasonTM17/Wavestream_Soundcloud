@@ -46,7 +46,7 @@ export function MiniPlayer() {
       : currentTrack?.genreLabel ?? "Queue ready";
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/90 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/85 bg-card/94 shadow-[0_-18px_50px_-34px_rgba(10,13,25,0.42)] backdrop-blur-xl">
       <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.4fr)_minmax(280px,0.85fr)] lg:px-6">
         <div className="flex items-center gap-3">
           <div
@@ -86,13 +86,13 @@ export function MiniPlayer() {
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2">
             <Button
-              variant="ghost"
+              variant={shuffle ? "secondary" : "ghost"}
               size="icon"
               onClick={toggleShuffle}
               aria-label="Toggle shuffle"
               disabled={!hasTrack}
             >
-              <Shuffle className={cn("h-4 w-4", shuffle && "text-primary")} />
+              <Shuffle className={cn("h-4 w-4", shuffle && "text-secondary-foreground")} />
             </Button>
             <Button
               variant="ghost"
@@ -108,6 +108,7 @@ export function MiniPlayer() {
               onClick={togglePlay}
               aria-label={isPlaying ? "Pause track" : "Play track"}
               disabled={!hasTrack}
+              className="shadow-[0_16px_36px_-20px_hsl(var(--primary)/0.82)]"
             >
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
@@ -121,13 +122,15 @@ export function MiniPlayer() {
               <SkipForward className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant={repeat !== "off" ? "secondary" : "ghost"}
               size="icon"
               onClick={() => setRepeat(repeat === "off" ? "all" : repeat === "all" ? "one" : "off")}
               aria-label="Cycle repeat mode"
               disabled={!hasTrack}
             >
-              <Repeat className={cn("h-4 w-4", repeat !== "off" && "text-primary")} />
+              <Repeat
+                className={cn("h-4 w-4", repeat !== "off" && "text-secondary-foreground")}
+              />
             </Button>
           </div>
 

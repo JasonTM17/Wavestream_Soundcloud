@@ -105,11 +105,11 @@ export function AuthCard({
   footer: React.ReactNode;
 }>) {
   return (
-    <Card className="w-full border-white/20 bg-white/80 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:bg-slate-950/70">
+    <Card className="w-full border-border/85 bg-card/95 shadow-[0_30px_80px_-34px_rgba(10,13,25,0.34)] backdrop-blur-xl">
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <Badge variant="soft">WaveStream Access</Badge>
-          <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+          <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground/90">
             Fast access
           </span>
         </div>
@@ -120,7 +120,7 @@ export function AuthCard({
       </CardHeader>
       <CardContent>
         {children}
-        <p className="mt-6 text-sm text-muted-foreground">{footer}</p>
+        <p className="mt-6 text-sm leading-6 text-muted-foreground">{footer}</p>
       </CardContent>
     </Card>
   );
