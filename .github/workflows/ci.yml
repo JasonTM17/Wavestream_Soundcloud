@@ -45,5 +45,12 @@ jobs:
       - name: End-to-end tests
         run: pnpm test:e2e
 
-      - name: Compose config
-        run: docker compose config
+      - name: Start Docker smoke stack
+        run: docker compose up -d --build
+
+      - name: Run Docker smoke verification
+        run: pnpm smoke:docker
+
+      - name: Tear down Docker smoke stack
+        if: always()
+        run: docker compose down -v --remove-orphans
