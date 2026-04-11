@@ -104,7 +104,7 @@ export const createArtworkSvg = (options: ArtworkOptions) => {
 
 export const createWaveAudioBuffer = (options: AudioOptions) => {
   const sampleRate = 44_100;
-  const channelCount = 1;
+  const channelCount = 2;
   const bitsPerSample = 16;
   const totalSamples = sampleRate * options.durationSeconds;
   const bytesPerSample = bitsPerSample / 8;
@@ -125,15 +125,57 @@ export const createWaveAudioBuffer = (options: AudioOptions) => {
   buffer.write('data', 36);
   buffer.writeUInt32LE(dataSize, 40);
 
+  const clamp = (value: number) => Math.max(-1, Math.min(1, value));
+  const smoothStep = (edge0: number, edge1: number, value: number) => {
+    if (edge0 === edge1) {
+      return value >= edge1 ? 1 : 0;
+    }
+
+    const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  };
+
+  const softClip = (value: number) => {
+    const limited = Math.tanh(value * 1.35);
+    return clamp(limited * 0.95);
+  };
+
   for (let index = 0; index < totalSamples; index += 1) {
     const time = index / sampleRate;
-    const envelope = Math.min(1, time / 0.6) * Math.min(1, (options.durationSeconds - time) / 0.8);
-    const base = Math.sin(2 * Math.PI * options.baseFrequency * time);
-    const harmony = Math.sin(2 * Math.PI * (options.baseFrequency * 1.5) * time);
-    const pulse = Math.sin(2 * Math.PI * options.pulseFrequency * time);
-    const sample = (base * 0.58 + harmony * 0.24 + pulse * 0.18) * envelope;
-    const clamped = Math.max(-1, Math.min(1, sample));
-    buffer.writeInt16LE(Math.round(clamped * 0x7fff), 44 + index * 2);
+    const attack = Math.min(0.9, Math.max(0.4, options.durationSeconds * 0.025));
+    const release = Math.min(1.2, Math.max(0.55, options.durationSeconds * 0.035));
+    const intro = smoothStep(0, attack, time);
+    const outro = smoothStep(0, release, options.durationSeconds - time);
+    const envelope = intro * outro;
+
+    const drift = Math.sin(2 * Math.PI * (options.baseFrequency / 96) * time) * 0.03;
+    const pulseLfo = 0.72 + 0.18 * Math.sin(2 * Math.PI * options.pulseFrequency * 0.5 * time);
+
+    const left =
+      Math.sin(2 * Math.PI * (options.baseFrequency + drift * 8) * time) * 0.34 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 1.5) * time + 0.17) * 0.18 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 2) * time + 0.31) * 0.06 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.5) * time - 0.28) * 0.16 +
+      Math.sin(2 * Math.PI * options.pulseFrequency * time) * 0.14 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.25) * time + 0.6) * 0.12 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.125) * time + 0.9) * 0.05;
+
+    const right =
+      Math.sin(2 * Math.PI * (options.baseFrequency * 1.005 + drift * 10) * time + 0.14) * 0.34 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 1.49) * time + 0.43) * 0.18 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 2.01) * time + 0.58) * 0.06 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.5) * time + 0.17) * 0.16 +
+      Math.sin(2 * Math.PI * options.pulseFrequency * time + 0.42) * 0.14 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.25) * time + 1.1) * 0.12 +
+      Math.sin(2 * Math.PI * (options.baseFrequency * 0.125) * time + 1.45) * 0.05;
+
+    const stereoSpread = 0.85 + 0.12 * Math.sin(2 * Math.PI * (options.pulseFrequency / 2) * time);
+    const mixLeft = softClip((left * pulseLfo + right * 0.14) * envelope * stereoSpread);
+    const mixRight = softClip((right * pulseLfo + left * 0.14) * envelope * stereoSpread);
+    const frameOffset = 44 + index * channelCount * bytesPerSample;
+
+    buffer.writeInt16LE(Math.round(clamp(mixLeft) * 0x7fff), frameOffset);
+    buffer.writeInt16LE(Math.round(clamp(mixRight) * 0x7fff), frameOffset + bytesPerSample);
   }
 
   return buffer;

@@ -860,33 +860,57 @@ const seedPlayEvents = async (
 ) => {
   const listenerRotation = ['ivy-hart', 'dev-patel', 'mia-tran', 'theo-cross', 'jules-park', null];
 
-  let offset = 4;
-  for (const trackSpec of SEED_TRACKS) {
+  const playCountsBySlug = new Map<string, number>([
+    ['aurora-current', 16],
+    ['blue-hour-tide', 13],
+    ['glass-circuit', 14],
+    ['linen-hours', 12],
+    ['paper-jetlag', 11],
+    ['velvet-runner', 15],
+    ['afterhours-hush', 5],
+    ['midnight-static', 8],
+    ['balcony-sunrise', 7],
+    ['southbound-lights', 9],
+    ['soft-signal', 6],
+    ['afterimage', 6],
+    ['tape-bloom', 8],
+    ['echo-relay', 7],
+  ]);
+
+  const publishedTracks = [...SEED_TRACKS]
+    .filter((track) => shouldPublishTrack(track))
+    .sort((left, right) => {
+      if (left.daysAgo !== right.daysAgo) {
+        return left.daysAgo - right.daysAgo;
+      }
+
+      if (left.durationSeconds !== right.durationSeconds) {
+        return right.durationSeconds - left.durationSeconds;
+      }
+
+      return left.slug.localeCompare(right.slug);
+    });
+
+  let offset = 1;
+  for (const trackSpec of publishedTracks) {
     const track = trackMap.get(trackSpec.slug);
-    if (!track || !shouldPublishTrack(trackSpec)) {
+    if (!track) {
       continue;
     }
 
-    const playCount =
-      trackSpec.slug === 'midnight-static'
-        ? 8
-        : trackSpec.slug === 'southbound-lights'
-          ? 7
-          : trackSpec.slug === 'balcony-sunrise'
-            ? 6
-            : 4;
+    const playCount = playCountsBySlug.get(trackSpec.slug) ?? 4;
 
     for (let index = 0; index < playCount; index += 1) {
       const listenerUsername = listenerRotation[(offset + index) % listenerRotation.length];
       const listener = listenerUsername ? userMap.get(listenerUsername) : null;
-      const playedAt = hoursAgo(offset + index * 3);
+      const playedAt = hoursAgo(offset + index * 2);
 
       await playEventsRepository.save(
         playEventsRepository.create({
           trackId: track.id,
           userId: listener?.id ?? null,
-          durationListened: Math.max(12, track.duration - (index % 5)),
-          source: index % 3 === 0 ? 'feed' : 'player',
+          durationListened: Math.max(18, track.duration - (index % 6)),
+          source: index % 4 === 0 ? 'feed' : 'player',
           playedAt,
         }),
       );
@@ -902,7 +926,7 @@ const seedPlayEvents = async (
       }
     }
 
-    offset += 5;
+    offset += 3;
   }
 };
 
