@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ReportStatus, TrackStatus, UserRole } from "@wavestream/shared";
 import { ShieldAlert, Users, Waves, MessageSquareWarning, ListMusic } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { ModerationNoteDialog } from "@/components/admin/moderation-note-dialog";
@@ -95,6 +96,21 @@ function statusBadgeVariant(status: ReportStatus | TrackStatus | "deleted" | "ac
     case ReportStatus.DISMISSED:
     case TrackStatus.HIDDEN:
     case "deleted":
+      return "outline";
+    default:
+      return "soft";
+  }
+}
+
+function targetStatusBadgeVariant(status?: string | null) {
+  switch (status?.toLowerCase()) {
+    case "active":
+    case "published":
+    case "public":
+      return "success";
+    case "deleted":
+    case "hidden":
+    case "private":
       return "outline";
     default:
       return "soft";
@@ -347,6 +363,7 @@ function AdminPlaylistCard({ playlist }: { playlist: AdminPlaylistSummary }) {
 function AdminReportCard({ report }: { report: AdminReportSummary }) {
   const [isResolveOpen, setIsResolveOpen] = React.useState(false);
   const resolveMutation = useResolveAdminReportMutation(report.id);
+  const shouldShowFallbackTargetId = !report.target?.label || !report.target?.href;
 
   return (
     <>
@@ -358,9 +375,51 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
               <Badge variant={statusBadgeVariant(report.status)}>{report.status}</Badge>
               <p className="font-medium">{report.reason}</p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Reporter: @{report.reporter} | Target ID: {report.reportableId}
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Reporter: @{report.reporter}</p>
+
+              {report.target?.label ? (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Target preview</p>
+                  {report.target.href ? (
+                    <Link
+                      href={report.target.href}
+                      className="block rounded-2xl border border-border/70 bg-card/80 px-4 py-3 transition hover:border-primary/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{report.target.label}</p>
+                        {report.target.status ? (
+                          <Badge variant={targetStatusBadgeVariant(report.target.status)}>
+                            {report.target.status}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {report.target.secondaryLabel ? (
+                        <p className="mt-1 text-sm text-muted-foreground">{report.target.secondaryLabel}</p>
+                      ) : null}
+                    </Link>
+                  ) : (
+                    <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{report.target.label}</p>
+                        {report.target.status ? (
+                          <Badge variant={targetStatusBadgeVariant(report.target.status)}>
+                            {report.target.status}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {report.target.secondaryLabel ? (
+                        <p className="mt-1 text-sm text-muted-foreground">{report.target.secondaryLabel}</p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {shouldShowFallbackTargetId ? (
+                <p className="text-sm text-muted-foreground">Target ID: {report.reportableId}</p>
+              ) : null}
+            </div>
             {report.details ? (
               <p className="text-sm leading-6 text-muted-foreground">{report.details}</p>
             ) : null}
