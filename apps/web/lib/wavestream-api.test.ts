@@ -84,7 +84,7 @@ describe("wavestream api helpers", () => {
     expect(track.playsLabel).toBe("1.8K");
     expect(track.artistHandle).toBe("@luna");
     expect(track.tags).toEqual(["night"]);
-    expect(track.streamUrl).toBe("/api/tracks/track-1/stream");
+    expect(track.streamUrl).toBe("https://api.wavestream.test/api/tracks/track-1/stream");
 
     expect(playlist.coverUrl).toBe("/covers/midnight.jpg");
     expect(playlist.totalDurationLabel).toBe("10:20");
@@ -216,6 +216,47 @@ describe("wavestream api helpers", () => {
     });
     expect("genre" in payload).toBe(false);
     expect("status" in payload).toBe(false);
+  });
+
+  it("resolves media urls against the API base without altering absolute urls", () => {
+    expect(apiModule.resolveMediaUrl("/uploads/tracks/midnight-static.mp3")).toBe(
+      "https://api.wavestream.test/uploads/tracks/midnight-static.mp3",
+    );
+    expect(apiModule.resolveMediaUrl("uploads/tracks/midnight-static.mp3")).toBe(
+      "https://api.wavestream.test/uploads/tracks/midnight-static.mp3",
+    );
+    expect(apiModule.resolveMediaUrl("https://cdn.wavestream.test/tracks/midnight-static.mp3")).toBe(
+      "https://cdn.wavestream.test/tracks/midnight-static.mp3",
+    );
+    expect(apiModule.resolveMediaUrl(null)).toBeNull();
+  });
+
+  it("records track plays against the encoded play endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { playCount: 1843 } }), {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+        },
+      }),
+    );
+
+    await expect(
+      apiModule.recordTrackPlay("midnight static", {
+        durationListened: 31,
+        source: "player",
+      }),
+    ).resolves.toEqual({ playCount: 1843 });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe("https://api.wavestream.test/api/tracks/midnight%20static/play");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      durationListened: 31,
+      source: "player",
+    });
   });
 
   it("builds playlist helpers against the expected endpoints and payloads", async () => {
