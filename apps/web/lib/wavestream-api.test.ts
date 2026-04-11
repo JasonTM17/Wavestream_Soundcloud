@@ -84,7 +84,7 @@ describe("wavestream api helpers", () => {
     expect(track.playsLabel).toBe("1.8K");
     expect(track.artistHandle).toBe("@luna");
     expect(track.tags).toEqual(["night"]);
-    expect(track.streamUrl).toBe("https://api.wavestream.test/api/tracks/track-1/stream");
+    expect(track.streamUrl).toBe("/api/media/tracks/track-1/stream");
 
     expect(playlist.coverUrl).toBe("/covers/midnight.jpg");
     expect(playlist.totalDurationLabel).toBe("10:20");

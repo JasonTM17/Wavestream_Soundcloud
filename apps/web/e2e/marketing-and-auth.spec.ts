@@ -10,6 +10,12 @@ test('renders the marketing landing page and opens the sign-in route', async ({
       name: 'Build, share, and discover audio with a studio-grade listening experience.',
     }),
   ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Live discovery rails, creator profiles, and playlist curation from the public API.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('Original product demo inspired by modern creator audio platforms.')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Discover' })).toBeVisible();
   const signInLink = page.getByRole('link', { name: 'Sign in', exact: true });
   await expect(signInLink).toBeVisible();
@@ -19,6 +25,9 @@ test('renders the marketing landing page and opens the sign-in route', async ({
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
     page.getByRole('heading', { name: 'Sign in to your studio' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Secure auth for listeners, creators, and admins'),
   ).toBeVisible();
 });
 

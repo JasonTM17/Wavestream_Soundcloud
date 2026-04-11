@@ -221,6 +221,29 @@ async function mockAdminModerationFeeds(page: Page) {
             details: "Looks like repeated promotional uploads.",
             status: "pending",
             reporter: "ivy",
+            target: {
+              label: "Late Shift",
+              secondaryLabel: "Track by Luna Echo",
+              status: "published",
+              href: "/track/track-admin-1",
+            },
+            resolvedBy: null,
+            createdAt: "2026-04-10T00:00:00.000Z",
+            resolvedAt: null,
+          },
+          {
+            id: "report-admin-2",
+            reportableType: "playlist",
+            reportableId: "playlist-admin-2",
+            reason: "Unsafe content",
+            details: null,
+            status: "pending",
+            reporter: "mila",
+            target: {
+              label: "Midnight Moderation",
+              secondaryLabel: "Playlist by Wave Admin",
+              status: "private",
+            },
             resolvedBy: null,
             createdAt: "2026-04-10T00:00:00.000Z",
             resolvedAt: null,
@@ -279,6 +302,16 @@ test("admin can reach the moderation hub and inspect the core surfaces", async (
   await expect(page.getByRole("tab", { name: "Audit logs" })).toBeVisible();
 
   await expect(page.getByRole("heading", { name: "Reports queue" })).toBeVisible();
+  await expect(page.getByText("Late Shift")).toBeVisible();
+  await expect(page.getByText("Track by Luna Echo")).toBeVisible();
+  await expect(page.getByText("published")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Late Shift/i })).toHaveAttribute(
+    "href",
+    "/track/track-admin-1",
+  );
+  await expect(page.getByText("Midnight Moderation")).toBeVisible();
+  await expect(page.getByText("Playlist by Wave Admin")).toBeVisible();
+  await expect(page.getByText("Target ID: playlist-admin-2")).toBeVisible();
 
   await page.getByRole("tab", { name: "Tracks" }).click();
   await expect(page.getByRole("heading", { name: "Track moderation" })).toBeVisible();
