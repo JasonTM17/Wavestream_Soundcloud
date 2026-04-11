@@ -15,7 +15,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthSession } from "@/lib/auth-store";
 import { toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
@@ -47,6 +46,20 @@ const toPlaylistMutationPayload = (values: PlaylistEditorValues) => ({
   description: values.description.trim() ? values.description.trim() : null,
   isPublic: values.visibility === "public",
 });
+
+export function buildLibraryStats(input: {
+  historyCount: number;
+  followingCount: number;
+  trackCount: number;
+  playlistCount: number;
+}) {
+  return [
+    ["Listening history", `${input.historyCount} tracks`, Clock3],
+    ["Following", `${input.followingCount} creators`, Users],
+    ["My uploads", `${input.trackCount} tracks`, Heart],
+    ["Playlists", `${input.playlistCount} collections`, LibraryBig],
+  ] as const;
+}
 
 export default function LibraryPage() {
   const session = useAuthSession();
@@ -110,18 +123,18 @@ export default function LibraryPage() {
     return <LibrarySkeleton />;
   }
 
-  const playlistTotal = playlists.length;
+  const libraryStats = buildLibraryStats({
+    historyCount: history.length,
+    followingCount: user?.followingCount ?? 0,
+    trackCount: user?.trackCount ?? 0,
+    playlistCount: playlists.length,
+  });
 
   return (
     <ProtectedRoute>
       <div className="space-y-6">
         <section className="grid gap-4 md:grid-cols-4">
-          {[
-            ["Listening history", `${history.length} tracks`, Clock3],
-            ["Liked tracks", `${user?.trackCount ?? 0} tracks`, Heart],
-            ["Following", `${user?.followingCount ?? 0} creators`, Users],
-            ["Playlists", `${playlistTotal} collections`, LibraryBig],
-          ].map(([label, value, Icon]) => (
+          {libraryStats.map(([label, value, Icon]) => (
             <Card key={label as string}>
               <CardContent className="flex items-center gap-4 p-5">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -177,10 +190,12 @@ export default function LibraryPage() {
                             {track.artistName}
                           </p>
                         </div>
-                        <Badge variant="soft">#{index + 1}</Badge>
-                      </div>
-                      <div className="mt-4">
-                        <Progress value={40 + index * 15} />
+                        <div className="text-right">
+                          <Badge variant="soft">#{index + 1}</Badge>
+                          <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                            Played {new Date(entry.playedAt).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
                     </Link>
                   );
@@ -333,11 +348,28 @@ export default function LibraryPage() {
                   </div>
                   <Badge variant="outline">{user?.role ?? "listener"}</Badge>
                 </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["History", `${history.length} recent plays`],
+                    ["Uploads", `${user?.trackCount ?? 0} tracks`],
+                    ["Following", `${user?.followingCount ?? 0} creators`],
+                    ["Playlists", `${playlists.length} collections`],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-lg font-medium">{value}</p>
+                    </div>
+                  ))}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Library data stays aligned with your live session, so playlist changes here update
                   discovery, track actions, and artist surfaces without extra refresh steps.
                 </p>
-                <Progress value={Math.min(100, playlistTotal * 14 + 24)} />
               </CardContent>
             </Card>
 

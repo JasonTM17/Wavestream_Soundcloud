@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
@@ -28,6 +27,22 @@ import {
 type ArtistPageProps = {
   params: { slug: string };
 };
+
+export function buildArtistStats(input: {
+  followerCount: number;
+  trackCount: number;
+  playlistCount: number;
+  totalPlays: number;
+  totalLikes: number;
+}) {
+  return [
+    ["Followers", formatCompactNumber(input.followerCount)],
+    ["Uploaded tracks", formatCompactNumber(input.trackCount)],
+    ["Public playlists", formatCompactNumber(input.playlistCount)],
+    ["Total plays", formatCompactNumber(input.totalPlays)],
+    ["Total likes", formatCompactNumber(input.totalLikes)],
+  ] as const;
+}
 
 function ArtistSkeleton() {
   return (
@@ -69,7 +84,7 @@ export default function ArtistPage({ params }: ArtistPageProps) {
         <CardContent className="space-y-3 p-8">
           <p className="text-lg font-semibold">Artist not found</p>
           <p className="text-sm text-muted-foreground">
-            The creator profile may still be private, unseeded, or unavailable from the backend.
+            The creator profile may still be private, unseeded, or unavailable right now.
           </p>
           <Button asChild variant="outline">
             <Link href="/discover">
@@ -82,8 +97,16 @@ export default function ArtistPage({ params }: ArtistPageProps) {
     );
   }
 
-  const trackCards = (tracksQuery.data ?? []).map(toTrackCard);
+  const trackSummaries = tracksQuery.data ?? [];
+  const trackCards = trackSummaries.map(toTrackCard);
   const playlistCards = (playlistsQuery.data ?? []).map(toPlaylistCard);
+  const artistStats = buildArtistStats({
+    followerCount: artist.followerCount ?? 0,
+    trackCount: trackCards.length,
+    playlistCount: playlistCards.length,
+    totalPlays: trackSummaries.reduce((sum, track) => sum + track.playCount, 0),
+    totalLikes: trackSummaries.reduce((sum, track) => sum + track.likeCount, 0),
+  });
 
   const playAll = () => {
     if (!trackCards.length) {
@@ -180,8 +203,8 @@ export default function ArtistPage({ params }: ArtistPageProps) {
           <CardHeader>
             <CardTitle>Uploaded tracks</CardTitle>
             <CardDescription>
-              This list is backed by the live tracks endpoint and remains empty if the API has not
-              been seeded yet.
+              This list is backed by the live tracks endpoint and remains empty if no tracks are
+              available yet.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -227,8 +250,7 @@ export default function ArtistPage({ params }: ArtistPageProps) {
                 <CardContent className="space-y-2 p-6">
                   <p className="font-medium">No tracks yet</p>
                   <p className="text-sm text-muted-foreground">
-                    Creator uploads will show up here once the backend has demo content or live
-                    publishes.
+                    Creator uploads will show up here once the creator feed is populated.
                   </p>
                 </CardContent>
               </Card>
@@ -243,19 +265,23 @@ export default function ArtistPage({ params }: ArtistPageProps) {
               <CardDescription>Listener, repost, and activity summary.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                ["Profile completion", 88],
-                ["Weekly growth", 74],
-                ["Engagement", 66],
-              ].map(([label, value]) => (
-                <div key={label as string} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{label as string}</span>
-                    <span className="text-muted-foreground">{value as number}%</span>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {artistStats.map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
                   </div>
-                  <Progress value={value as number} />
-                </div>
-              ))}
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                These stats are aggregated from the tracks and playlists already loaded on the
+                page, so the profile reads like a live creator surface instead of a mock dashboard.
+              </p>
             </CardContent>
           </Card>
 
