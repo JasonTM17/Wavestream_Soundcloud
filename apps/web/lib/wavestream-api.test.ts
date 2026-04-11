@@ -170,6 +170,60 @@ describe("wavestream api helpers", () => {
     expect(discovery.featuredArtists[0]?.username).toBe("luna");
   });
 
+  it("normalizes discovery payloads from backend feed keys", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/discovery/home")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              trending: [makeTrack({ id: "track-3", slug: "coastal-static", title: "Coastal Static" })],
+              recentUploads: [
+                makeTrack({
+                  id: "track-4",
+                  slug: "sunset-loop",
+                  title: "Sunset Loop",
+                  artist: {
+                    id: "artist-2",
+                    username: "solis",
+                    displayName: "Solis Kim",
+                    role: "creator",
+                  },
+                }),
+              ],
+              popularPlaylists: [makePlaylist({ id: "playlist-3", slug: "sunset-cuts", title: "Sunset Cuts" })],
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        );
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    const discovery = await apiModule.getDiscoveryResults();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(discovery.trendingTracks).toHaveLength(1);
+    expect(discovery.newReleases).toHaveLength(1);
+    expect(discovery.featuredPlaylists).toHaveLength(1);
+    expect(discovery.featuredArtists).toHaveLength(2);
+    expect(discovery.featuredArtists.map((artist) => artist.username)).toEqual(
+      expect.arrayContaining(["luna", "solis"]),
+    );
+  });
+
   it("builds multipart track upload form data with optional fields and repeated tags", () => {
     const formData = apiModule.buildCreateTrackFormData({
       audioFile: new File(["audio"], "midnight-static.wav", { type: "audio/wav" }),
