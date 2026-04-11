@@ -1,0 +1,15 @@
+{
+  "typescript.tsdk": "apps/api/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "/apps/api/tsconfig.json",
+        "/apps/api/tsconfig.build.json",
+        "/apps/web/tsconfig.json",
+        "/packages/shared/tsconfig.json"
+      ],
+      "url": "https://json.schemastore.org/tsconfig"
+    }
+  ]
+}
