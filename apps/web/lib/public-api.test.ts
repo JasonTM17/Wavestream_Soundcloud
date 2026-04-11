@@ -151,7 +151,7 @@ describe("public-api", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(4);
     expect(result.trendingTracks).toHaveLength(1);
-    expect(result.featuredArtists).toHaveLength(1);
+    expect(result.featuredArtists).toHaveLength(0);
   });
 
   it("normalizes backend discovery keys into landing rails", async () => {
@@ -250,9 +250,6 @@ describe("public-api", () => {
     expect(result.trendingTracks).toHaveLength(1);
     expect(result.newReleases).toHaveLength(1);
     expect(result.featuredPlaylists).toHaveLength(1);
-    expect(result.featuredArtists).toHaveLength(2);
-    expect(result.featuredArtists.map((artist) => artist.username)).toEqual(
-      expect.arrayContaining(["solis", "north"]),
-    );
+    expect(result.featuredArtists).toHaveLength(0);
   });
 });

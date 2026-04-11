@@ -451,16 +451,6 @@ function getArrayPayloadFromKeys<T>(payload: unknown, keys: string[]) {
   return [];
 }
 
-function buildFeaturedArtistsFromTracks(tracks: TrackSummary[]) {
-  const artistMap = new Map<string, UserSummary>();
-
-  tracks.forEach((track) => {
-    artistMap.set(track.artist.id, track.artist);
-  });
-
-  return Array.from(artistMap.values()).slice(0, 6);
-}
-
 function getPaginatedPayload<T>(payload: unknown): PaginatedApiResponse<T> {
   if (Array.isArray(payload)) {
     return { data: payload as T[] };
@@ -720,9 +710,7 @@ export async function getDiscoveryResults() {
       trendingTracks,
       newReleases,
       featuredPlaylists,
-      featuredArtists: featuredArtists.length
-        ? featuredArtists
-        : buildFeaturedArtistsFromTracks([...trendingTracks, ...newReleases]),
+      featuredArtists,
       genres: result.genres ?? [],
     };
   } catch (error) {
@@ -735,16 +723,11 @@ export async function getDiscoveryResults() {
       getPlaylists({ limit: 6 }).catch(() => []),
     ]);
 
-    const featuredArtists = new Map<string, UserSummary>();
-    tracks.forEach((track) => {
-      featuredArtists.set(track.artist.id, track.artist);
-    });
-
     return {
       trendingTracks: tracks,
       newReleases: tracks.slice(0, 6),
       featuredPlaylists: playlists,
-      featuredArtists: Array.from(featuredArtists.values()).slice(0, 6),
+      featuredArtists: [],
       genres: [],
     };
   }

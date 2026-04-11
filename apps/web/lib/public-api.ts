@@ -43,16 +43,6 @@ const asArrayFromKeys = <T,>(payload: unknown, keys: string[]) => {
   return [];
 };
 
-const buildFeaturedArtists = (tracks: TrackSummary[]) => {
-  const artistMap = new Map<string, UserSummary>();
-
-  tracks.forEach((track) => {
-    artistMap.set(track.artist.id, track.artist);
-  });
-
-  return Array.from(artistMap.values()).slice(0, 6);
-};
-
 async function fetchPublicJson(path: string) {
   try {
     const response = await fetch(`${SERVER_API_URL}${path}`, {
@@ -106,9 +96,7 @@ function normalizeDiscovery(payload: DiscoveryPayload | null): DiscoveryResults 
     trendingTracks,
     newReleases,
     featuredPlaylists,
-    featuredArtists: featuredArtists.length
-      ? featuredArtists
-      : buildFeaturedArtists([...trendingTracks, ...newReleases]),
+    featuredArtists,
     genres: asArray<GenreSummary>(source, "genres"),
   };
 }
@@ -129,17 +117,11 @@ async function fetchPublicDiscoveryFallback(genres: GenreSummary[] = []): Promis
 
   const tracks = asArray<TrackSummary>(tracksPayload as TracksPayload | null, "data");
   const playlists = asArray<PlaylistSummary>(playlistsPayload as PlaylistsPayload | null, "data");
-  const featuredArtists = new Map<string, UserSummary>();
-
-  tracks.forEach((track) => {
-    featuredArtists.set(track.artist.id, track.artist);
-  });
-
   return {
     trendingTracks: tracks,
     newReleases: tracks.slice(0, 6),
     featuredPlaylists: playlists,
-    featuredArtists: Array.from(featuredArtists.values()).slice(0, 6),
+    featuredArtists: [],
     genres,
   };
 }

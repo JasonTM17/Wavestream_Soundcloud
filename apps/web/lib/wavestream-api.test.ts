@@ -166,8 +166,7 @@ describe("wavestream api helpers", () => {
     expect(discovery.trendingTracks).toHaveLength(2);
     expect(discovery.newReleases).toHaveLength(2);
     expect(discovery.featuredPlaylists).toHaveLength(1);
-    expect(discovery.featuredArtists).toHaveLength(1);
-    expect(discovery.featuredArtists[0]?.username).toBe("luna");
+    expect(discovery.featuredArtists).toHaveLength(0);
   });
 
   it("normalizes discovery payloads from backend feed keys", async () => {
@@ -218,10 +217,7 @@ describe("wavestream api helpers", () => {
     expect(discovery.trendingTracks).toHaveLength(1);
     expect(discovery.newReleases).toHaveLength(1);
     expect(discovery.featuredPlaylists).toHaveLength(1);
-    expect(discovery.featuredArtists).toHaveLength(2);
-    expect(discovery.featuredArtists.map((artist) => artist.username)).toEqual(
-      expect.arrayContaining(["luna", "solis"]),
-    );
+    expect(discovery.featuredArtists).toHaveLength(0);
   });
 
   it("builds multipart track upload form data with optional fields and repeated tags", () => {

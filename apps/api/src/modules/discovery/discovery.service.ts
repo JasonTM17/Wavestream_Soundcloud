@@ -59,12 +59,26 @@ export class DiscoveryService {
         order: { createdAt: 'DESC' },
         take: 8,
       }),
-      this.usersRepository.find({
-        where: { role: UserRole.CREATOR },
-        relations: { profile: true },
-        order: { followerCount: 'DESC', trackCount: 'DESC', createdAt: 'DESC' },
-        take: 6,
-      }),
+      this.usersRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.profile', 'profile')
+        .innerJoin(
+          'user.tracks',
+          'publicTrack',
+          'publicTrack.deletedAt IS NULL AND publicTrack.status = :trackStatus AND publicTrack.privacy = :trackPrivacy',
+          {
+            trackStatus: TrackStatus.PUBLISHED,
+            trackPrivacy: TrackPrivacy.PUBLIC,
+          },
+        )
+        .where('user.role = :role', { role: UserRole.CREATOR })
+        .andWhere('user.deletedAt IS NULL')
+        .distinct(true)
+        .orderBy('user.followerCount', 'DESC')
+        .addOrderBy('user.trackCount', 'DESC')
+        .addOrderBy('user.createdAt', 'DESC')
+        .take(6)
+        .getMany(),
       this.playlistsRepository.find({
         where: { isPublic: true },
         relations: { owner: { profile: true } },
