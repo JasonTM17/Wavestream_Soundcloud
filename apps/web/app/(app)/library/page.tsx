@@ -33,10 +33,10 @@ function LibrarySkeleton() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-28 rounded-[2rem]" />
+          <Skeleton key={index} className="h-28 rounded-md" />
         ))}
       </div>
-      <Skeleton className="h-96 w-full rounded-[2rem]" />
+      <Skeleton className="h-96 w-full rounded-md" />
     </div>
   );
 }
@@ -137,12 +137,12 @@ export default function LibraryPage() {
           {libraryStats.map(([label, value, Icon]) => (
             <Card key={label as string}>
               <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold">{value as string}</p>
-                  <p className="text-sm text-muted-foreground">{label as string}</p>
+                  <p className="text-xl font-bold text-white">{value as string}</p>
+                  <p className="text-sm text-[#b3b3b3]">{label as string}</p>
                 </div>
               </CardContent>
             </Card>
@@ -157,10 +157,10 @@ export default function LibraryPage() {
                 Resume where you left off with live listening history data.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2">
               {historyQuery.isLoading ? (
                 Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-24 w-full rounded-3xl" />
+                  <Skeleton key={index} className="h-16 w-full rounded-md" />
                 ))
               ) : history.length ? (
                 history.map((entry, index) => {
@@ -169,47 +169,42 @@ export default function LibraryPage() {
                     <Link
                       key={`${entry.track.id}-${entry.playedAt}`}
                       href={`/track/${track.slug}`}
-                      className="rounded-3xl border border-border/70 bg-background/70 p-4 transition hover:border-primary/35"
+                      className="group flex items-center gap-4 rounded-md bg-[#1f1f1f] p-3 transition-colors hover:bg-[#282828]"
                     >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500"
-                          style={
-                            track.coverUrl
-                              ? {
-                                  backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.18), rgba(7, 11, 24, 0.45)), url(${track.coverUrl})`,
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                }
-                              : undefined
-                          }
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{track.title}</p>
-                          <p className="truncate text-sm text-muted-foreground">
-                            {track.artistName}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="soft">#{index + 1}</Badge>
-                          <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                            Played {new Date(entry.playedAt).toLocaleString()}
-                          </p>
-                        </div>
+                      <div
+                        className="h-12 w-12 shrink-0 rounded-md bg-gradient-to-br from-[#1ed760] to-[#169c46]"
+                        style={
+                          track.coverUrl
+                            ? {
+                                backgroundImage: `url(${track.coverUrl})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                              }
+                            : undefined
+                        }
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-white group-hover:text-[#1ed760] transition-colors">{track.title}</p>
+                        <p className="truncate text-xs text-[#b3b3b3]">
+                          {track.artistName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="soft">#{index + 1}</Badge>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#b3b3b3]">
+                          {new Date(entry.playedAt).toLocaleDateString()}
+                        </p>
                       </div>
                     </Link>
                   );
                 })
               ) : (
-                <Card className="border-dashed bg-background/60">
-                  <CardContent className="space-y-2 p-6">
-                    <p className="font-medium">Listening history is empty</p>
-                    <p className="text-sm text-muted-foreground">
-                      Playback events will appear here after you start listening on a signed-in
-                      session.
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="rounded-md bg-[#1f1f1f] p-6">
+                  <p className="font-bold text-white">Listening history is empty</p>
+                  <p className="text-sm text-[#b3b3b3]">
+                    Playback events will appear here after you start listening.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -220,7 +215,7 @@ export default function LibraryPage() {
                 <div>
                   <CardTitle>Your playlists</CardTitle>
                   <CardDescription>
-                    Create, rename, hide, and delete playlists from the same signed-in library.
+                    Create, edit, and delete playlists from your library.
                   </CardDescription>
                 </div>
                 <Button type="button" onClick={() => setIsCreateOpen(true)}>
@@ -228,102 +223,85 @@ export default function LibraryPage() {
                   New playlist
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {myPlaylistsQuery.isLoading ? (
                   Array.from({ length: 3 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 w-full rounded-3xl" />
+                    <Skeleton key={index} className="h-20 w-full rounded-md" />
                   ))
                 ) : myPlaylistsQuery.isError ? (
-                  <Card className="border-dashed bg-background/60">
-                    <CardContent className="space-y-4 p-6">
-                      <div className="space-y-2">
-                        <p className="font-medium">Could not load your playlists</p>
-                        <p className="text-sm text-muted-foreground">
-                          The library is signed-in and ready, but the playlist feed did not return.
-                        </p>
-                      </div>
-                      <Button type="button" variant="outline" onClick={() => void myPlaylistsQuery.refetch()}>
-                        Retry
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div className="rounded-md bg-[#1f1f1f] p-6">
+                    <p className="font-bold text-white">Could not load your playlists</p>
+                    <Button type="button" variant="outline" className="mt-4" onClick={() => void myPlaylistsQuery.refetch()}>
+                      Retry
+                    </Button>
+                  </div>
                 ) : playlists.length ? (
                   playlists.map((playlist) => (
                     <div
                       key={playlist.id}
-                      className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                      className="group flex flex-col gap-4 rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828] md:flex-row md:items-center"
                     >
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                        <Link
-                          href={`/playlist/${playlist.slug}`}
-                          className="flex min-w-0 flex-1 items-center gap-4 transition hover:text-primary"
-                        >
-                          <div
-                            className="h-16 w-16 rounded-2xl bg-gradient-to-br from-slate-900 via-cyan-900 to-teal-700"
-                            style={
-                              playlist.coverUrl
-                                ? {
-                                    backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.18), rgba(7, 11, 24, 0.45)), url(${playlist.coverUrl})`,
-                                    backgroundSize: "cover",
-                                    backgroundPosition: "center",
-                                  }
-                                : undefined
-                            }
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate font-medium">{playlist.title}</p>
-                              <Badge variant={playlist.isPublic ? "soft" : "outline"}>
-                                {playlist.isPublic ? "Public" : "Private"}
-                              </Badge>
-                            </div>
-                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                              {playlist.description || "No description yet."}
-                            </p>
-                            <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                              {playlist.trackCount} tracks | {playlist.totalDurationLabel}
-                            </p>
+                      <Link
+                        href={`/playlist/${playlist.slug}`}
+                        className="flex min-w-0 flex-1 items-center gap-4"
+                      >
+                        <div
+                          className="h-14 w-14 shrink-0 rounded-md bg-[#282828]"
+                          style={
+                            playlist.coverUrl
+                              ? {
+                                  backgroundImage: `url(${playlist.coverUrl})`,
+                                  backgroundSize: "cover",
+                                  backgroundPosition: "center",
+                                }
+                              : undefined
+                          }
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-bold text-white group-hover:text-white transition-colors">{playlist.title}</p>
+                            <Badge variant={playlist.isPublic ? "soft" : "outline"}>
+                              {playlist.isPublic ? "Public" : "Private"}
+                            </Badge>
                           </div>
-                        </Link>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingPlaylistId(playlist.id)}
-                          >
-                            <PencilLine className="h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setPendingDeletePlaylistId(playlist.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </Button>
+                          <p className="mt-1 line-clamp-1 text-xs text-[#b3b3b3]">
+                            {playlist.description || "No description."}
+                          </p>
+                          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#b3b3b3]">
+                            {playlist.trackCount} tracks • {playlist.totalDurationLabel}
+                          </p>
                         </div>
+                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setEditingPlaylistId(playlist.id)}
+                        >
+                          <PencilLine className="h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPendingDeletePlaylistId(playlist.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <Card className="border-dashed bg-background/60">
-                    <CardContent className="space-y-4 p-6">
-                      <div className="space-y-2">
-                        <p className="font-medium">No playlists yet</p>
-                        <p className="text-sm text-muted-foreground">
-                          Start a collection for favorite discoveries, private listening queues, or
-                          your next shareable set.
-                        </p>
-                      </div>
-                      <Button type="button" onClick={() => setIsCreateOpen(true)}>
-                        <Plus className="h-4 w-4" />
-                        Create your first playlist
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div className="rounded-md bg-[#1f1f1f] p-6">
+                    <p className="font-bold text-white mb-4">No playlists yet</p>
+                    <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                      <Plus className="h-4 w-4" />
+                      Create your first playlist
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -331,18 +309,17 @@ export default function LibraryPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile summary</CardTitle>
-                <CardDescription>Creator, listener, and playlist overview.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 rounded-3xl border border-border/70 bg-background/70 p-3">
-                  <Avatar className="h-11 w-11">
-                    <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3 rounded-md bg-[#1f1f1f] p-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-[#1ed760] text-black text-sm font-bold">
                       {(user?.displayName ?? "WS").slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{user?.displayName ?? "WaveStream member"}</p>
-                    <p className="truncate text-sm text-muted-foreground">
+                    <p className="font-bold text-white">{user?.displayName ?? "WaveStream member"}</p>
+                    <p className="truncate text-sm text-[#b3b3b3]">
                       @{user?.username ?? "member"}
                     </p>
                   </div>
@@ -350,59 +327,54 @@ export default function LibraryPage() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {[
-                    ["History", `${history.length} recent plays`],
+                    ["History", `${history.length} plays`],
                     ["Uploads", `${user?.trackCount ?? 0} tracks`],
                     ["Following", `${user?.followingCount ?? 0} creators`],
                     ["Playlists", `${playlists.length} collections`],
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                      className="rounded-md bg-[#1f1f1f] p-4"
                     >
-                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#b3b3b3]">
                         {label}
                       </p>
-                      <p className="mt-2 text-lg font-medium">{value}</p>
+                      <p className="mt-2 text-xl font-bold text-white">{value}</p>
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Library data stays aligned with your live session, so playlist changes here update
-                  discovery, track actions, and artist surfaces without extra refresh steps.
-                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Your reports</CardTitle>
-                <CardDescription>Recent moderation reports you have submitted.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {myReportsQuery.isLoading ? (
                   Array.from({ length: 2 }).map((_, index) => (
-                    <Skeleton key={index} className="h-24 w-full rounded-3xl" />
+                    <Skeleton key={index} className="h-24 w-full rounded-md" />
                   ))
                 ) : reports.length ? (
                   reports.map((report) => (
                     <div
                       key={report.id}
-                      className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                      className="rounded-md bg-[#1f1f1f] p-4"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="soft">{report.reportableType}</Badge>
                         <Badge variant="outline">{report.status}</Badge>
                       </div>
-                      <p className="mt-2 font-medium">{report.reason}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Created {new Date(report.createdAt).toLocaleString()}
+                      <p className="mt-2 font-medium text-white">{report.reason}</p>
+                      <p className="mt-1 text-xs text-[#b3b3b3]">
+                        Created {new Date(report.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Report an item from a track, playlist, or artist page and it will appear here.
-                  </p>
+                  <div className="rounded-md bg-[#1f1f1f] p-4 text-sm text-[#b3b3b3]">
+                    No recent reports.
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -439,7 +411,7 @@ export default function LibraryPage() {
           onOpenChange={(open) => !open && setPendingDeletePlaylistId(null)}
           entityName={pendingDeletePlaylist?.title}
           entityLabel="playlist"
-          dialogDescription="This removes the playlist from your library, discovery surfaces, and any signed-in owner views."
+          dialogDescription="This removes the playlist from your library forever."
           confirmLabel="Delete playlist"
           isPending={deletePlaylistMutation.isPending}
           onConfirm={handleDeletePlaylist}
