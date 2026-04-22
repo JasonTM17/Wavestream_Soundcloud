@@ -69,18 +69,18 @@ function TrackSkeleton() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <Skeleton className="aspect-square rounded-[2rem]" />
+            <Skeleton className="aspect-square rounded-md" />
             <div className="space-y-4">
               <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-40 w-full rounded-[1.8rem]" />
+              <Skeleton className="h-40 w-full rounded-md" />
               <Skeleton className="h-11 w-40" />
             </div>
           </div>
         </CardContent>
       </Card>
       <div className="space-y-6">
-        <Skeleton className="h-44 w-full rounded-[2rem]" />
-        <Skeleton className="h-44 w-full rounded-[2rem]" />
+        <Skeleton className="h-44 w-full rounded-md" />
+        <Skeleton className="h-44 w-full rounded-md" />
       </div>
     </section>
   );
@@ -171,11 +171,11 @@ export default function TrackPage() {
 
   if (trackQuery.isError || !currentTrack) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-0 bg-[#181818]">
         <CardContent className="space-y-3 p-8">
-          <p className="text-lg font-semibold">Track not available</p>
-          <p className="text-sm text-muted-foreground">
-            The track may not exist yet, may still be private, or the API response shape changed.
+          <p className="text-lg font-bold text-white">Track not available</p>
+          <p className="text-sm text-[#b3b3b3]">
+            The track may not exist yet or may be private.
           </p>
           <Button asChild variant="outline">
             <Link href="/discover">
@@ -306,7 +306,7 @@ export default function TrackPage() {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" asChild className="w-fit px-0">
+      <Button variant="ghost" asChild className="w-fit px-0 text-[#b3b3b3] hover:text-white hover:bg-transparent">
         <Link href="/discover">
           <ArrowLeft className="h-4 w-4" />
           Back to discovery
@@ -314,27 +314,23 @@ export default function TrackPage() {
       </Button>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden bg-[#181818] border-none shadow-none">
           <CardHeader className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="soft">{card.genreLabel}</Badge>
               <Badge variant="outline">{card.durationLabel}</Badge>
               <Badge variant="outline">{formatCompactNumber(currentTrack.playCount)} plays</Badge>
             </div>
-            <CardTitle className="text-4xl">{card.title}</CardTitle>
-            <CardDescription className="max-w-2xl text-base">
-              Live track page wired to backend data, comments, related tracks, playback state, and
-              real playlist actions.
-            </CardDescription>
+            <CardTitle className="text-4xl text-white">{card.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
               <div
-                className="aspect-square rounded-[2rem] bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500 shadow-2xl"
+                className="aspect-square rounded-md bg-gradient-to-br from-[#1ed760] to-[#169c46] shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
                 style={
                   card.coverUrl
                     ? {
-                        backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.2), rgba(7, 11, 24, 0.52)), url(${card.coverUrl})`,
+                        backgroundImage: `url(${card.coverUrl})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                       }
@@ -343,35 +339,26 @@ export default function TrackPage() {
               />
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
                     Creator
                   </p>
-                  <p className="mt-2 text-2xl font-semibold">{card.artistName}</p>
-                  <p className="text-sm text-muted-foreground">{card.artistHandle}</p>
+                  <p className="mt-1 text-2xl font-bold text-white">{card.artistName}</p>
                 </div>
-                <div className="rounded-[1.8rem] border border-border/70 bg-background/70 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                <div className="rounded-md bg-[#1f1f1f] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
                     <span>Live playback</span>
                     <span>{playbackStatus}</span>
                   </div>
                   <div className="mt-4 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {isActiveTrack ? "Synced to the global player" : "Ready to join the queue"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isActiveTrack
-                            ? "This track follows the current runtime session across route changes."
-                            : "Start playback here and the mini player will pick it up instantly."}
+                        <p className="text-sm font-bold text-white">
+                          {isActiveTrack ? "Synced to player" : "Ready"}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-bold text-white">
                           {formatDuration(activeProgress)} / {formatDuration(activeDuration)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(progressPercent)}% complete
                         </p>
                       </div>
                     </div>
@@ -384,11 +371,11 @@ export default function TrackPage() {
                         return (
                           <div
                             key={index}
-                            className="rounded-full bg-gradient-to-b from-primary/80 via-primary/40 to-primary/10 transition-all"
+                            className="rounded-full bg-[#1ed760] transition-all"
                             style={{
                               height: `${barHeight}px`,
-                              opacity: isAheadOfProgress ? 1 : 0.42,
-                              transform: isActiveTrack && playerIsPlaying ? "scaleY(1)" : "scaleY(0.92)",
+                              opacity: isAheadOfProgress ? 1 : 0.2,
+                              transform: isActiveTrack && playerIsPlaying ? "scaleY(1)" : "scaleY(0.5)",
                             }}
                           />
                         );
@@ -411,14 +398,15 @@ export default function TrackPage() {
                       const nextLiked = !liked;
                       setLiked(nextLiked);
                       likeMutation.mutate(nextLiked, {
-                        onError: (error) => {
+                         onError: (error) => {
                           setLiked((value) => !value);
                           toast.error(error instanceof Error ? error.message : "Failed to update like.");
                         },
                       });
                     }}
+                    className={liked ? "text-[#1ed760] border-[#1ed760]" : ""}
                   >
-                    <Heart className="h-4 w-4" />
+                    <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
                     {liked ? "Liked" : "Like"}
                   </Button>
                   <Button
@@ -435,13 +423,14 @@ export default function TrackPage() {
                         },
                       });
                     }}
+                    className={reposted ? "text-[#1ed760] border-[#1ed760]" : ""}
                   >
                     <Repeat className="h-4 w-4" />
                     {reposted ? "Reposted" : "Repost"}
                   </Button>
                   <Button variant="outline" onClick={openPlaylistDialog}>
                     <ListPlus className="h-4 w-4" />
-                    Add to playlist
+                    Add
                   </Button>
                   <ShareActionButton
                     title={card.title}
@@ -451,7 +440,7 @@ export default function TrackPage() {
                       toast.success(
                         method === "native"
                           ? "Share sheet opened."
-                          : "Track link copied to clipboard.",
+                          : "Track link copied.",
                       );
                     }}
                     onError={(error) => {
@@ -470,72 +459,66 @@ export default function TrackPage() {
               </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-[#282828]" />
 
             <section className="space-y-4">
-              <h3 className="text-lg font-semibold">Comments timeline</h3>
+              <h3 className="text-lg font-bold text-white">Comments</h3>
               <div className="space-y-3">
                 {commentsQuery.isLoading ? (
                   Array.from({ length: 3 }).map((_, index) => (
-                    <Skeleton key={index} className="h-16 w-full rounded-3xl" />
+                    <Skeleton key={index} className="h-16 w-full rounded-md" />
                   ))
                 ) : comments.length ? (
                   comments.map((comment) => (
                     <div
                       key={comment.id}
-                      className="flex gap-3 rounded-3xl border border-border/70 bg-background/70 p-4"
+                      className="flex gap-3 rounded-md bg-[#1f1f1f] p-4"
                     >
                       <Badge variant="soft" className="h-fit">
                         {comment.timestampSeconds ? formatDuration(comment.timestampSeconds) : "Note"}
                       </Badge>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{comment.user.displayName}</p>
-                          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          <p className="font-bold text-white">{comment.user.displayName}</p>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
                             @{comment.user.username}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        <p className="mt-1 text-sm text-[#b3b3b3]">
                           {comment.body}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <Card className="border-dashed bg-background/60">
-                    <CardContent className="p-6 text-sm text-muted-foreground">
-                      No comments yet. Timestamped comments will appear here once listeners start
-                      discussing the track.
-                    </CardContent>
-                  </Card>
+                  <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
+                    No comments yet. Add yours below.
+                  </div>
                 )}
               </div>
             </section>
 
-            <Card className="border-border/70 bg-background/70">
+            <Card className="bg-[#1f1f1f]">
               <CardHeader>
                 <CardTitle>Add a comment</CardTitle>
-                <CardDescription>
-                  Comments are posted through the live API and can be anchored to a timestamp.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="comment-body">Comment</Label>
                   <Textarea
                     id="comment-body"
-                    placeholder="Leave a note about the intro, drop, or mix."
+                    placeholder="Leave a note..."
                     value={commentBody}
                     onChange={(event) => setCommentBody(event.target.value)}
                   />
                 </div>
                 <div className="grid gap-4 md:grid-cols-[180px_1fr]">
                   <div className="space-y-2">
-                    <Label htmlFor="timestamp">Timestamp (seconds)</Label>
+                    <Label htmlFor="timestamp">Timestamp (sec)</Label>
                     <Input
                       id="timestamp"
                       inputMode="numeric"
-                      placeholder="24"
+                      placeholder="e.g. 24"
                       value={timestamp}
                       onChange={(event) => setTimestamp(event.target.value)}
                     />
@@ -543,7 +526,7 @@ export default function TrackPage() {
                   <div className="flex items-end justify-end">
                     <Button onClick={submitComment} disabled={commentMutation.isPending}>
                       <MessageSquare className="h-4 w-4" />
-                      {commentMutation.isPending ? "Posting..." : "Post comment"}
+                      {commentMutation.isPending ? "Posting..." : "Post"}
                     </Button>
                   </div>
                 </div>
@@ -556,7 +539,6 @@ export default function TrackPage() {
           <Card>
             <CardHeader>
               <CardTitle>Track stats</CardTitle>
-              <CardDescription>Creator-friendly performance snapshot.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
@@ -567,10 +549,10 @@ export default function TrackPage() {
               ].map(([label, value]) => (
                 <div
                   key={label as string}
-                  className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/70 px-4 py-3"
+                  className="flex items-center justify-between rounded-md bg-[#1f1f1f] px-4 py-3"
                 >
-                  <span className="text-sm text-muted-foreground">{label as string}</span>
-                  <span className="font-medium">{formatCompactNumber(value as number)}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">{label as string}</span>
+                  <span className="font-bold text-white">{formatCompactNumber(value as number)}</span>
                 </div>
               ))}
             </CardContent>
@@ -579,24 +561,23 @@ export default function TrackPage() {
           <Card>
             <CardHeader>
               <CardTitle>Artist</CardTitle>
-              <CardDescription>Profile card with live follow action.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-14 w-14">
-                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
+                  <AvatarFallback className="bg-[#1ed760] text-black text-sm font-bold">
                     {card.artistName.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{card.artistName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {card.artistHandle} |{" "}
+                  <p className="font-bold text-white">{card.artistName}</p>
+                  <p className="text-xs text-[#b3b3b3]">
+                    {card.artistHandle} •{" "}
                     {formatCompactNumber(currentTrack.artist.followerCount)} followers
                   </p>
                 </div>
                 <Button
-                  variant="outline"
+                  variant={following ? "secondary" : "outline"}
                   onClick={() => {
                     const nextFollowing = !following;
                     setFollowing(nextFollowing);
@@ -614,21 +595,17 @@ export default function TrackPage() {
                   {following ? "Following" : "Follow"}
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {currentTrack.artist.bio ?? "The artist profile is live and sourced from the backend."}
-              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Related tracks</CardTitle>
-              <CardDescription>Tracks with matching artist or genre signals.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {relatedQuery.isLoading ? (
                 Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={index} className="h-20 w-full rounded-3xl" />
+                  <Skeleton key={index} className="h-14 w-full rounded-md" />
                 ))
               ) : relatedTracks.length ? (
                 relatedTracks.map((track) => {
@@ -637,14 +614,14 @@ export default function TrackPage() {
                     <Link
                       key={related.id}
                       href={`/track/${related.slug}`}
-                      className="flex items-center gap-3 rounded-3xl border border-border/70 bg-background/70 p-3 transition hover:border-primary/35"
+                      className="group flex items-center gap-3 rounded-md bg-[#1f1f1f] p-2 transition-colors hover:bg-[#282828]"
                     >
                       <div
-                        className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-900 via-cyan-900 to-teal-700"
+                        className="h-10 w-10 shrink-0 rounded-md bg-[#282828]"
                         style={
                           related.coverUrl
                             ? {
-                                backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.18), rgba(7, 11, 24, 0.45)), url(${related.coverUrl})`,
+                                backgroundImage: `url(${related.coverUrl})`,
                                 backgroundSize: "cover",
                                 backgroundPosition: "center",
                               }
@@ -652,18 +629,18 @@ export default function TrackPage() {
                         }
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{related.title}</p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {related.artistName} | {related.genreLabel}
+                        <p className="truncate font-bold text-white group-hover:text-[#1ed760] transition-colors">{related.title}</p>
+                        <p className="truncate text-xs text-[#b3b3b3]">
+                          {related.artistName}
                         </p>
                       </div>
                     </Link>
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No related tracks were returned for this track.
-                </p>
+                <div className="rounded-md bg-[#1f1f1f] p-4 text-xs text-[#b3b3b3]">
+                  No related tracks.
+                </div>
               )}
             </CardContent>
           </Card>
