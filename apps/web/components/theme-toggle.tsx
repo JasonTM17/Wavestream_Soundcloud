@@ -22,7 +22,7 @@ type ThemeToggleProps = {
 export function ThemeToggle({
   className,
   size = "icon",
-  variant = "outline",
+  variant = "ghost",
 }: ThemeToggleProps = {}) {
   const { resolvedTheme, setTheme, theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
