@@ -30,7 +30,7 @@ export function Providers({ children }: React.PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
+        defaultTheme="dark"
         enableSystem
         disableTransitionOnChange
       >
@@ -44,7 +44,7 @@ export function Providers({ children }: React.PropsWithChildren) {
                 position="bottom-right"
                 toastOptions={{
                   className:
-                    "rounded-2xl border border-border/80 bg-background/95 text-foreground shadow-[0_18px_50px_-28px_rgba(10,13,25,0.55)] backdrop-blur-xl",
+                    "rounded-lg border border-[#282828] bg-[#282828] text-white shadow-[0_8px_24px_rgba(0,0,0,0.5)]",
                 }}
               />
             </PlayerProvider>
