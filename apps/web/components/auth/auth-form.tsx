@@ -105,11 +105,11 @@ export function AuthCard({
   footer: React.ReactNode;
 }>) {
   return (
-    <Card className="w-full border-border/85 bg-card/95 shadow-[0_30px_80px_-34px_rgba(10,13,25,0.34)] backdrop-blur-xl">
+    <Card className="w-full border-none bg-[#181818] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <Badge variant="soft">WaveStream Access</Badge>
-          <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground/90">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#b3b3b3]">
             Fast access
           </span>
         </div>

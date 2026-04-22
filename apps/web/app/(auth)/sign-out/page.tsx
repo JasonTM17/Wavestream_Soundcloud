@@ -52,19 +52,19 @@ export default function SignOutPage() {
       }
     >
       <div className="space-y-5">
-        <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-background/60 p-4">
-          <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-400 text-white shadow-lg shadow-cyan-500/20">
+        <div className="flex items-start gap-3 rounded-md bg-[#282828] p-4">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black">
             {state === "loading" ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogOut className="h-5 w-5" />}
           </div>
           <div className="space-y-1">
-            <p className="font-medium text-foreground">
+            <p className="font-bold text-white">
               {state === "loading"
                 ? "Clearing your session..."
                 : state === "done"
                   ? "Session cleared."
                   : "Sign-out needs a retry."}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-[#b3b3b3]">
               {state === "loading"
                 ? "This keeps the refresh cookie and browser state aligned before sending you back to sign in."
                 : state === "done"
