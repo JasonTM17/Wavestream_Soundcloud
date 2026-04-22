@@ -149,7 +149,7 @@ export default function DiscoverPage() {
             <p className="mt-1 text-xs text-[#b3b3b3]">Verified creators from the discovery feed.</p>
             <div className="mt-4 space-y-1">
               {discovery.isLoading ? <SectionSkeleton /> : artists.length ? artists.map((a) => (
-                <Link key={a.id} href={`/artist/${a.username}`} className="group flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-[#1f1f1f]">
+                <Link key={a.id} href={`/artist/${a.username}`} aria-label={`Open artist ${a.displayName}`} className="group flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-[#1f1f1f]">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-[#1ed760] text-black text-xs font-bold">{a.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>

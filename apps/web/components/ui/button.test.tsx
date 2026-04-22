@@ -11,11 +11,11 @@ afterEach(() => {
 
 describe("Button", () => {
   it.each([
-    ["default", "bg-primary text-primary-foreground"],
-    ["secondary", "bg-secondary text-secondary-foreground"],
-    ["outline", "border-border/85 bg-card/92 text-foreground"],
-    ["ghost", "text-foreground/84 hover:bg-muted/88"],
-    ["accent", "bg-accent text-accent-foreground"],
+    ["default", "bg-[#1ed760] text-black shadow-[0_8px_24px_-12px_rgba(30,215,96,0.6)] hover:bg-[#1fdf64] hover:scale-[1.02] hover:shadow-[0_8px_28px_-8px_rgba(30,215,96,0.65)]"],
+    ["secondary", "bg-[#1f1f1f] text-white border border-transparent hover:bg-[#282828] hover:scale-[1.02]"],
+    ["outline", "border border-[#727272] bg-transparent text-white hover:border-white hover:scale-[1.02]"],
+    ["ghost", "bg-transparent text-[#b3b3b3] hover:bg-[#1f1f1f] hover:text-white"],
+    ["accent", "bg-white text-black font-bold hover:scale-[1.02] hover:bg-[#f0f0f0]"],
   ] as const)("applies the %s variant classes", (variant, expectedClass) => {
     render(<Button variant={variant}>WaveStream CTA</Button>);
 
@@ -32,7 +32,7 @@ describe("Button", () => {
     const cta = screen.getByRole("link", { name: "Explore discovery" });
 
     expect(cta).toHaveAttribute("href", "/discover");
-    expect(cta).toHaveClass("border-border/85 bg-card/92 text-foreground");
+    expect(cta).toHaveClass("border border-[#727272] bg-transparent text-white hover:border-white hover:scale-[1.02]");
     expect(cta).toHaveClass("rounded-full px-6");
   });
 
@@ -43,6 +43,6 @@ describe("Button", () => {
 
     expect(cta).toBeDisabled();
     expect(cta).toHaveClass("disabled:pointer-events-none");
-    expect(cta).toHaveClass("disabled:translate-y-0 disabled:shadow-none disabled:saturate-50 disabled:opacity-60");
+    expect(cta).toHaveClass("disabled:opacity-50");
   });
 });

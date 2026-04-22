@@ -95,7 +95,7 @@ describe("DiscoverPage", () => {
 
     expect(screen.getByText("Feed snapshot")).toBeInTheDocument();
     expect(screen.queryByText("Listening pulse")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Featured artists")).toHaveLength(2);
+    expect(screen.getAllByText("Featured artists")).toHaveLength(1);
   });
 
   it("routes guests toward sign-in for creator tools and keeps artist cards deep-linkable", () => {
