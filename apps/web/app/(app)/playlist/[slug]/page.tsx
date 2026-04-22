@@ -42,7 +42,7 @@ import {
 function PlaylistSkeleton() {
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-[#181818] border-none">
         <Skeleton className="h-52 w-full rounded-none" />
         <CardHeader className="space-y-3">
           <Skeleton className="h-5 w-24 rounded-full" />
@@ -50,7 +50,7 @@ function PlaylistSkeleton() {
           <Skeleton className="h-5 w-full" />
         </CardHeader>
       </Card>
-      <Skeleton className="h-80 w-full rounded-[2rem]" />
+      <Skeleton className="h-80 w-full rounded-md" />
     </div>
   );
 }
@@ -102,11 +102,11 @@ export default function PlaylistPage() {
 
   if (playlistQuery.isError || !playlistData || !playlist) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-0 bg-[#181818]">
         <CardContent className="space-y-3 p-8">
-          <p className="text-lg font-semibold">Playlist not available</p>
-          <p className="text-sm text-muted-foreground">
-            The playlist may be private, missing, or the API response shape may still be evolving.
+          <p className="text-lg font-bold text-white">Playlist not available</p>
+          <p className="text-sm text-[#b3b3b3]">
+            The playlist may be private or missing.
           </p>
           <Button asChild variant="outline">
             <Link href="/discover">
@@ -195,34 +195,34 @@ export default function PlaylistPage() {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" asChild className="w-fit px-0">
+      <Button variant="ghost" asChild className="w-fit px-0 text-[#b3b3b3] hover:text-white hover:bg-transparent">
         <Link href="/discover">
           <ArrowLeft className="h-4 w-4" />
           Back to discovery
         </Link>
       </Button>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-[#181818] border-none shadow-none">
         <div
-          className="h-52 bg-gradient-to-br from-slate-900 via-cyan-900 to-teal-700"
+          className="h-52 bg-[#282828]"
           style={
             playlist.coverUrl
               ? {
-                  backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.15), rgba(7, 11, 24, 0.5)), url(${playlist.coverUrl})`,
+                  backgroundImage: `linear-gradient(180deg, rgba(24, 24, 24, 0) 0%, #181818 100%), url(${playlist.coverUrl})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }
               : undefined
           }
         />
-        <CardHeader>
+        <CardHeader className="pt-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="soft">Playlist</Badge>
             <Badge variant="outline">{playlist.trackCount} tracks</Badge>
             <Badge variant="outline">{playlist.totalDurationLabel}</Badge>
             <Badge variant="outline">{playlist.isPublic ? "Public" : "Private"}</Badge>
           </div>
-          <CardTitle className="text-4xl">{playlist.title}</CardTitle>
+          <CardTitle className="text-4xl text-white mt-4">{playlist.title}</CardTitle>
           <CardDescription className="max-w-2xl text-base">{playlist.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
@@ -256,11 +256,11 @@ export default function PlaylistPage() {
             <>
               <Button type="button" variant="outline" onClick={() => setIsEditOpen(true)}>
                 <PencilLine className="h-4 w-4" />
-                Edit playlist
+                Edit
               </Button>
               <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(true)}>
                 <Trash2 className="h-4 w-4" />
-                Delete playlist
+                Delete
               </Button>
             </>
           ) : null}
@@ -271,11 +271,8 @@ export default function PlaylistPage() {
         <Card>
           <CardHeader>
             <CardTitle>Tracks in this playlist</CardTitle>
-            <CardDescription>
-              Queue the whole collection, or manage ordering and membership if you own it.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {playlistEntries.length ? (
               playlistEntries.map((entry, index) => {
                 const track = toTrackCard(entry.track);
@@ -285,7 +282,7 @@ export default function PlaylistPage() {
                 return (
                   <div
                     key={track.id}
-                    className="rounded-3xl border border-border/70 bg-background/70 p-4"
+                    className="rounded-md bg-[#1f1f1f] p-3 hover:bg-[#282828] transition-colors"
                   >
                     <div className="flex flex-col gap-4 md:flex-row md:items-center">
                       <button
@@ -294,15 +291,15 @@ export default function PlaylistPage() {
                           setQueue(playlist.tracks);
                           playTrack(track);
                         }}
-                        className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                        className="flex min-w-0 flex-1 items-center gap-4 text-left group"
                       >
                         <Badge variant="soft">#{index + 1}</Badge>
                         <div
-                          className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500"
+                          className="h-12 w-12 rounded-md bg-[#282828] shrink-0"
                           style={
                             track.coverUrl
                               ? {
-                                  backgroundImage: `linear-gradient(180deg, rgba(7, 11, 24, 0.18), rgba(7, 11, 24, 0.48)), url(${track.coverUrl})`,
+                                  backgroundImage: `url(${track.coverUrl})`,
                                   backgroundSize: "cover",
                                   backgroundPosition: "center",
                                 }
@@ -310,16 +307,13 @@ export default function PlaylistPage() {
                           }
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{track.title}</p>
-                          <p className="truncate text-sm text-muted-foreground">
-                            {track.artistName} | {track.genreLabel}
+                          <p className="truncate font-bold text-white group-hover:text-[#1ed760] transition-colors">{track.title}</p>
+                          <p className="truncate text-xs text-[#b3b3b3]">
+                            {track.artistName} • {track.genreLabel}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <Badge variant="outline">{track.durationLabel}</Badge>
-                          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                            Position {index + 1}
-                          </p>
                         </div>
                       </button>
 
@@ -333,7 +327,6 @@ export default function PlaylistPage() {
                             onClick={() => void moveTrack(track.id, "up")}
                           >
                             <ArrowUp className="h-3.5 w-3.5" />
-                            Up
                           </Button>
                           <Button
                             type="button"
@@ -343,7 +336,6 @@ export default function PlaylistPage() {
                             onClick={() => void moveTrack(track.id, "down")}
                           >
                             <ArrowDown className="h-3.5 w-3.5" />
-                            Down
                           </Button>
                           <Button
                             type="button"
@@ -353,7 +345,6 @@ export default function PlaylistPage() {
                             onClick={() => setPendingRemoveTrackId(track.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            Remove
                           </Button>
                         </div>
                       ) : null}
@@ -362,14 +353,10 @@ export default function PlaylistPage() {
                 );
               })
             ) : (
-              <Card className="border-dashed bg-background/60">
-                <CardContent className="space-y-2 p-6">
-                  <p className="font-medium">Playlist is empty</p>
-                  <p className="text-sm text-muted-foreground">
-                    Tracks will appear here after the owner adds them.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
+                <p className="font-bold text-white mb-2">Playlist is empty</p>
+                Tracks will appear here after the owner adds them.
+              </div>
             )}
           </CardContent>
         </Card>
@@ -378,17 +365,16 @@ export default function PlaylistPage() {
           <Card>
             <CardHeader>
               <CardTitle>Playlist owner</CardTitle>
-              <CardDescription>Live profile data from the backend.</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <Avatar className="h-14 w-14">
-                <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white">
+                <AvatarFallback className="bg-[#1ed760] text-black text-sm font-bold">
                   {playlist.owner.displayName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="font-medium">{playlist.owner.displayName}</p>
-                <p className="text-sm text-muted-foreground">@{playlist.owner.username}</p>
+                <p className="font-bold text-white">{playlist.owner.displayName}</p>
+                <p className="text-xs text-[#b3b3b3]">@{playlist.owner.username}</p>
               </div>
               <Badge variant="soft">{playlist.isPublic ? "Public" : "Private"}</Badge>
             </CardContent>
@@ -397,7 +383,6 @@ export default function PlaylistPage() {
           <Card>
             <CardHeader>
               <CardTitle>Playlist stats</CardTitle>
-              <CardDescription>Owner signals and collection size at a glance.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
@@ -407,10 +392,10 @@ export default function PlaylistPage() {
               ].map(([label, value]) => (
                 <div
                   key={label as string}
-                  className="flex items-center justify-between rounded-3xl border border-border/70 bg-background/70 px-4 py-3"
+                  className="flex items-center justify-between rounded-md bg-[#1f1f1f] px-4 py-3"
                 >
-                  <span className="text-sm text-muted-foreground">{label as string}</span>
-                  <span className="font-medium">{value as string | number}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">{label as string}</span>
+                  <span className="font-bold text-white">{value as string | number}</span>
                 </div>
               ))}
             </CardContent>
@@ -436,7 +421,7 @@ export default function PlaylistPage() {
         onOpenChange={setIsDeleteOpen}
         entityName={playlist.title}
         entityLabel="playlist"
-        dialogDescription="Deleting this playlist removes the collection from your library and any public discovery placements."
+        dialogDescription="Deleting this playlist removes the collection from your library."
         confirmLabel="Delete playlist"
         isPending={deletePlaylistMutation.isPending}
         onConfirm={handleDeletePlaylist}
@@ -447,8 +432,8 @@ export default function PlaylistPage() {
         onOpenChange={(open) => !open && setPendingRemoveTrackId(null)}
         entityName={pendingRemoveTrack?.title}
         entityLabel="track"
-        dialogTitle="Remove track from playlist"
-        dialogDescription="This only removes the track from the current playlist. The original track remains live everywhere else it is allowed to appear."
+        dialogTitle="Remove track"
+        dialogDescription="This only removes the track from the current playlist."
         confirmLabel="Remove track"
         isPending={removeTrackMutation.isPending}
         onConfirm={handleRemoveTrack}

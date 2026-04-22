@@ -46,14 +46,14 @@ export function ConfirmDeleteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/12 text-rose-600 dark:text-rose-300">
+          <div className="mb-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-500">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <DialogTitle>{heading}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-[1.5rem] border border-border/70 bg-background/70 p-4 text-sm text-muted-foreground">
+        <div className="rounded-md bg-[#1f1f1f] p-4 text-sm text-[#b3b3b3]">
           Confirming this action should only be possible for the current owner or an authorized
           moderator. The component itself stays generic so the caller can enforce those rules.
         </div>

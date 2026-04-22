@@ -122,7 +122,7 @@ export function AddToPlaylistDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(92vw,42rem)]">
         <DialogHeader>
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="mb-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black">
             <ListMusic className="h-5 w-5" />
           </div>
           <DialogTitle>Add to playlist</DialogTitle>
@@ -132,9 +132,9 @@ export function AddToPlaylistDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-[1.75rem] border border-border/70 bg-background/70 p-4">
+        <div className="rounded-md bg-[#1f1f1f] p-4">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-300">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black">
               <Music4 className="h-4 w-4" />
             </div>
             <div className="space-y-1">
@@ -157,14 +157,14 @@ export function AddToPlaylistDialog({
                     type="button"
                     onClick={() => setSelection(playlist.id)}
                     className={cn(
-                      "flex w-full items-center gap-4 rounded-[1.5rem] border p-4 text-left transition",
+                      "flex w-full items-center gap-4 rounded-md border-none p-4 text-left transition-colors",
                       isSelected
-                        ? "border-primary/50 bg-primary/8 shadow-[0_16px_40px_-24px_hsl(var(--primary))]"
-                        : "border-border/70 bg-background/70 hover:border-primary/30",
+                        ? "bg-[#282828] text-white"
+                        : "bg-[#1f1f1f] hover:bg-[#282828]",
                     )}
                   >
                     <div
-                      className="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-900 via-cyan-900 to-teal-700"
+                      className="h-14 w-14 rounded-md bg-[#282828] shrink-0"
                       style={
                         playlist.coverUrl
                           ? {
@@ -202,9 +202,9 @@ export function AddToPlaylistDialog({
             </div>
           </ScrollArea>
         ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-border/70 bg-background/60 p-6">
+          <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#282828] text-white">
                 <Plus className="h-4 w-4" />
               </div>
               <div className="space-y-1">

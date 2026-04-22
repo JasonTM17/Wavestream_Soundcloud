@@ -128,7 +128,7 @@ export function PlaylistEditorDialog({
             <Textarea
               id={descriptionId}
               placeholder="A late-night playlist for the long road home."
-              className="min-h-28 rounded-[1.75rem]"
+              className="min-h-28 rounded-md"
               {...form.register("description")}
             />
             {form.formState.errors.description ? (
@@ -161,9 +161,9 @@ export function PlaylistEditorDialog({
             </div>
           ) : null}
 
-          <div className="rounded-[1.5rem] border border-border/70 bg-background/70 p-4">
+          <div className="rounded-md bg-[#1f1f1f] p-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black">
                 <Lock className="h-4 w-4" />
               </div>
               <div className="space-y-1">
