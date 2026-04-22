@@ -50,40 +50,34 @@ function AdminSkeleton() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={index} className="h-28 rounded-[2rem]" />
+          <Skeleton key={index} className="h-28 rounded-md" />
         ))}
       </div>
-      <Skeleton className="h-[42rem] rounded-[2rem]" />
+      <Skeleton className="h-[42rem] rounded-md" />
     </div>
   );
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <Card className="border-dashed bg-background/60">
-      <CardContent className="space-y-2 p-6">
-        <p className="font-medium">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
+      <p className="font-bold text-white mb-2">{title}</p>
+      {description}
+    </div>
   );
 }
 
 function QueryErrorState({ label, onRetry }: { label: string; onRetry: () => void }) {
   return (
-    <Card className="border-dashed bg-background/60">
-      <CardContent className="space-y-4 p-6">
-        <div className="space-y-2">
-          <p className="font-medium">Could not load {label}</p>
-          <p className="text-sm text-muted-foreground">
-            The admin session is valid, but this moderation feed did not return.
-          </p>
-        </div>
-        <Button type="button" variant="outline" onClick={onRetry}>
-          Retry
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="rounded-md bg-[#1f1f1f] p-6">
+      <div className="space-y-2 mb-4 text-[#b3b3b3] text-sm">
+        <p className="font-bold text-white">Could not load {label}</p>
+        <p>The admin session is valid, but this moderation feed did not return.</p>
+      </div>
+      <Button type="button" variant="outline" onClick={onRetry}>
+        Retry
+      </Button>
+    </div>
   );
 }
 
@@ -128,25 +122,25 @@ function AdminUserCard({ user }: { user: AdminUserSummary }) {
   const roleChanged = draftRole !== user.role;
 
   return (
-    <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+    <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium">{user.displayName}</p>
+            <p className="font-bold text-white">{user.displayName}</p>
             <Badge variant="soft">@{user.username}</Badge>
             <Badge variant={statusBadgeVariant(user.deletedAt ? "deleted" : "active")}>
               {user.deletedAt ? "Deleted" : user.role}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            {formatCompactNumber(user.followerCount)} followers | {user.trackCount} tracks | {user.playlistCount} playlists
+          <p className="text-sm text-[#b3b3b3]">{user.email}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
+            {formatCompactNumber(user.followerCount)} followers • {user.trackCount} tracks • {user.playlistCount} playlists
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Select value={draftRole} onValueChange={(value) => setDraftRole(value as UserRole)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 border-[#b3b3b3] text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +163,7 @@ function AdminUserCard({ user }: { user: AdminUserSummary }) {
               )
             }
           >
-            {updateRoleMutation.isPending ? "Saving..." : "Apply role"}
+            {updateRoleMutation.isPending ? "Saving..." : "Apply"}
           </Button>
         </div>
       </div>
@@ -184,20 +178,20 @@ function AdminTrackCard({ track }: { track: AdminTrackSummary }) {
 
   return (
     <>
-      <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+      <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{track.title}</p>
+              <p className="font-bold text-white">{track.title}</p>
               <Badge variant={statusBadgeVariant(track.status)}>{track.status}</Badge>
               <Badge variant="outline">{track.privacy}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">by {track.artistName}</p>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {formatCompactNumber(track.playCount)} plays | {formatCompactNumber(track.likeCount)} likes | {track.commentCount} comments
+            <p className="text-sm text-[#b3b3b3]">by {track.artistName}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
+              {formatCompactNumber(track.playCount)} plays • {formatCompactNumber(track.likeCount)} likes • {track.commentCount} comments
             </p>
             {track.hiddenReason ? (
-              <p className="text-sm text-muted-foreground">Hidden reason: {track.hiddenReason}</p>
+              <p className="text-sm text-[#b3b3b3]">Hidden reason: {track.hiddenReason}</p>
             ) : null}
           </div>
 
@@ -252,17 +246,17 @@ function AdminCommentCard({ comment }: { comment: AdminCommentSummary }) {
 
   return (
     <>
-      <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+      <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">@{comment.username}</p>
+              <p className="font-bold text-white">@{comment.username}</p>
               <Badge variant={statusBadgeVariant(comment.isHidden ? "deleted" : "active")}>
                 {comment.isHidden ? "Hidden" : "Visible"}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">On {comment.trackTitle}</p>
-            <p className="text-sm leading-6 text-muted-foreground">{comment.body}</p>
+            <p className="text-sm text-[#b3b3b3]">On {comment.trackTitle}</p>
+            <p className="text-sm text-[#b3b3b3]">{comment.body}</p>
           </div>
 
           <div className="flex gap-2">
@@ -315,18 +309,18 @@ function AdminPlaylistCard({ playlist }: { playlist: AdminPlaylistSummary }) {
 
   return (
     <>
-      <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+      <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{playlist.title}</p>
+              <p className="font-bold text-white">{playlist.title}</p>
               <Badge variant={statusBadgeVariant(playlist.deletedAt ? "deleted" : "active")}>
                 {playlist.deletedAt ? "Deleted" : playlist.isPublic ? "Public" : "Private"}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Owner: {playlist.ownerName}</p>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {playlist.trackCount} tracks | {formatDuration(playlist.totalDuration)}
+            <p className="text-sm text-[#b3b3b3]">Owner: {playlist.ownerName}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
+              {playlist.trackCount} tracks • {formatDuration(playlist.totalDuration)}
             </p>
           </div>
 
@@ -336,7 +330,7 @@ function AdminPlaylistCard({ playlist }: { playlist: AdminPlaylistSummary }) {
             disabled={Boolean(playlist.deletedAt)}
             onClick={() => setIsDeleteOpen(true)}
           >
-            Delete playlist
+            Delete
           </Button>
         </div>
       </div>
@@ -367,27 +361,27 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
 
   return (
     <>
-      <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+      <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="soft">{report.reportableType}</Badge>
               <Badge variant={statusBadgeVariant(report.status)}>{report.status}</Badge>
-              <p className="font-medium">{report.reason}</p>
+              <p className="font-bold text-white">{report.reason}</p>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Reporter: @{report.reporter}</p>
+              <p className="text-sm text-[#b3b3b3]">Reporter: @{report.reporter}</p>
 
               {report.target?.label ? (
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Target preview</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">Target preview</p>
                   {report.target.href ? (
                     <Link
                       href={report.target.href}
-                      className="block rounded-2xl border border-border/70 bg-card/80 px-4 py-3 transition hover:border-primary/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="block rounded-md bg-[#282828] px-4 py-3 transition-colors hover:bg-[#333333] border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{report.target.label}</p>
+                        <p className="font-bold text-white">{report.target.label}</p>
                         {report.target.status ? (
                           <Badge variant={targetStatusBadgeVariant(report.target.status)}>
                             {report.target.status}
@@ -395,13 +389,13 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
                         ) : null}
                       </div>
                       {report.target.secondaryLabel ? (
-                        <p className="mt-1 text-sm text-muted-foreground">{report.target.secondaryLabel}</p>
+                        <p className="mt-1 text-sm text-[#b3b3b3]">{report.target.secondaryLabel}</p>
                       ) : null}
                     </Link>
                   ) : (
-                    <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3">
+                    <div className="rounded-md bg-[#282828] px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{report.target.label}</p>
+                        <p className="font-bold text-white">{report.target.label}</p>
                         {report.target.status ? (
                           <Badge variant={targetStatusBadgeVariant(report.target.status)}>
                             {report.target.status}
@@ -409,7 +403,7 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
                         ) : null}
                       </div>
                       {report.target.secondaryLabel ? (
-                        <p className="mt-1 text-sm text-muted-foreground">{report.target.secondaryLabel}</p>
+                        <p className="mt-1 text-sm text-[#b3b3b3]">{report.target.secondaryLabel}</p>
                       ) : null}
                     </div>
                   )}
@@ -417,11 +411,11 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
               ) : null}
 
               {shouldShowFallbackTargetId ? (
-                <p className="text-sm text-muted-foreground">Target ID: {report.reportableId}</p>
+                <p className="text-sm text-[#b3b3b3]">Target ID: {report.reportableId}</p>
               ) : null}
             </div>
             {report.details ? (
-              <p className="text-sm leading-6 text-muted-foreground">{report.details}</p>
+              <p className="text-sm text-[#b3b3b3]">{report.details}</p>
             ) : null}
           </div>
 
@@ -451,18 +445,18 @@ function AdminReportCard({ report }: { report: AdminReportSummary }) {
 
 function AdminAuditLogCard({ log }: { log: AdminAuditLogSummary }) {
   return (
-    <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+    <div className="rounded-md bg-[#1f1f1f] p-4 transition-colors hover:bg-[#282828]">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline">{log.action}</Badge>
-        <p className="font-medium">
+        <p className="font-bold text-white">
           {log.entityType}:{log.entityId}
         </p>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Admin @{log.admin} | {new Date(log.createdAt).toLocaleString()}
+      <p className="mt-2 text-sm text-[#b3b3b3]">
+        Admin @{log.admin} • {new Date(log.createdAt).toLocaleString()}
       </p>
       {log.details ? (
-        <pre className="mt-3 overflow-x-auto rounded-2xl border border-border/70 bg-card/80 p-3 text-xs text-muted-foreground">
+        <pre className="mt-3 overflow-x-auto rounded-md bg-[#282828] p-3 text-xs text-[#b3b3b3]">
           {JSON.stringify(log.details, null, 2)}
         </pre>
       ) : null}
@@ -499,15 +493,14 @@ function AdminPageContent() {
   return (
     <ProtectedRoute requireRole="admin">
       <div className="space-y-6">
-        <section className="rounded-[2rem] border border-border/70 bg-card/85 p-6 shadow-[0_24px_70px_-36px_rgba(10,13,25,0.45)]">
+        <section className="rounded-lg bg-[#181818] p-6 shadow-md">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <Badge variant="soft">Admin moderation hub</Badge>
               <div className="space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight">Admin dashboard</h1>
-                <p className="max-w-3xl text-sm text-muted-foreground">
-                  Moderate tracks, playlists, comments, reports, users, and audit history from the
-                  live admin API already running behind WaveStream.
+                <h1 className="text-3xl font-bold text-white">Admin dashboard</h1>
+                <p className="max-w-3xl text-sm text-[#b3b3b3]">
+                  Moderate tracks, playlists, comments, reports, users, and audit history.
                 </p>
               </div>
             </div>
@@ -526,49 +519,50 @@ function AdminPageContent() {
             const Icon = item.icon;
 
             return (
-              <Card key={item.label}>
-                <CardContent className="flex items-center gap-4 p-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold">{formatCompactNumber(item.value)}</p>
-                    <p className="text-sm text-muted-foreground">{item.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
+               <Card key={item.label}>
+                  <CardContent className="flex items-center gap-4 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-white">{formatCompactNumber(item.value)}</p>
+                      <p className="text-sm text-[#b3b3b3]">{item.label}</p>
+                    </div>
+                  </CardContent>
+               </Card>
             );
           })}
         </section>
 
         <Tabs defaultValue="reports" className="space-y-6">
-          <TabsList className="flex h-auto flex-wrap justify-start gap-2 rounded-[1.5rem] bg-card/70 p-2">
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="tracks">Tracks</TabsTrigger>
-            <TabsTrigger value="comments">Comments</TabsTrigger>
-            <TabsTrigger value="playlists">Playlists</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="audit">Audit logs</TabsTrigger>
+          <TabsList className="flex h-auto flex-wrap justify-start gap-2 rounded-md bg-[#1f1f1f] p-2">
+            <TabsTrigger value="reports" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Reports</TabsTrigger>
+            <TabsTrigger value="tracks" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Tracks</TabsTrigger>
+            <TabsTrigger value="comments" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Comments</TabsTrigger>
+            <TabsTrigger value="playlists" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Playlists</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Users</TabsTrigger>
+            <TabsTrigger value="audit" className="data-[state=active]:bg-[#282828] data-[state=active]:text-white text-[#b3b3b3]">Audit logs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="reports">
             <Card>
               <CardHeader>
                 <CardTitle>Reports queue</CardTitle>
-                <CardDescription>Review, resolve, or dismiss moderation reports.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {reportsQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : reportsQuery.isError ? (
                   <QueryErrorState label="reports" onRetry={() => void reportsQuery.refetch()} />
                 ) : reportsQuery.data?.data.length ? (
                   <>
-                    {reportsQuery.data.data.map((report) => (
-                      <AdminReportCard key={report.id} report={report} />
-                    ))}
+                    <div className="space-y-2">
+                      {reportsQuery.data.data.map((report) => (
+                        <AdminReportCard key={report.id} report={report} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={reportsPage}
                       hasPrev={Boolean(reportsQuery.data.meta?.hasPreviousPage)}
@@ -588,20 +582,21 @@ function AdminPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Track moderation</CardTitle>
-                <CardDescription>Hide or restore tracks that break platform rules.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {tracksQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : tracksQuery.isError ? (
                   <QueryErrorState label="tracks" onRetry={() => void tracksQuery.refetch()} />
                 ) : tracksQuery.data?.data.length ? (
                   <>
-                    {tracksQuery.data.data.map((track) => (
-                      <AdminTrackCard key={track.id} track={track} />
-                    ))}
+                    <div className="space-y-2">
+                      {tracksQuery.data.data.map((track) => (
+                        <AdminTrackCard key={track.id} track={track} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={tracksPage}
                       hasPrev={Boolean(tracksQuery.data.meta?.hasPreviousPage)}
@@ -621,20 +616,21 @@ function AdminPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Comment moderation</CardTitle>
-                <CardDescription>Hide or restore comments reported by listeners.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {commentsQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : commentsQuery.isError ? (
                   <QueryErrorState label="comments" onRetry={() => void commentsQuery.refetch()} />
                 ) : commentsQuery.data?.data.length ? (
                   <>
-                    {commentsQuery.data.data.map((comment) => (
-                      <AdminCommentCard key={comment.id} comment={comment} />
-                    ))}
+                    <div className="space-y-2">
+                      {commentsQuery.data.data.map((comment) => (
+                        <AdminCommentCard key={comment.id} comment={comment} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={commentsPage}
                       hasPrev={Boolean(commentsQuery.data.meta?.hasPreviousPage)}
@@ -654,20 +650,21 @@ function AdminPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Playlist moderation</CardTitle>
-                <CardDescription>Review and soft delete abusive or unsafe playlists.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {playlistsQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : playlistsQuery.isError ? (
                   <QueryErrorState label="playlists" onRetry={() => void playlistsQuery.refetch()} />
                 ) : playlistsQuery.data?.data.length ? (
                   <>
-                    {playlistsQuery.data.data.map((playlist) => (
-                      <AdminPlaylistCard key={playlist.id} playlist={playlist} />
-                    ))}
+                    <div className="space-y-2">
+                      {playlistsQuery.data.data.map((playlist) => (
+                        <AdminPlaylistCard key={playlist.id} playlist={playlist} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={playlistsPage}
                       hasPrev={Boolean(playlistsQuery.data.meta?.hasPreviousPage)}
@@ -687,20 +684,21 @@ function AdminPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>User roles</CardTitle>
-                <CardDescription>Promote or demote roles without leaving the admin hub.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {usersQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : usersQuery.isError ? (
                   <QueryErrorState label="users" onRetry={() => void usersQuery.refetch()} />
                 ) : usersQuery.data?.data.length ? (
                   <>
-                    {usersQuery.data.data.map((user) => (
-                      <AdminUserCard key={user.id} user={user} />
-                    ))}
+                    <div className="space-y-2">
+                      {usersQuery.data.data.map((user) => (
+                        <AdminUserCard key={user.id} user={user} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={usersPage}
                       hasPrev={Boolean(usersQuery.data.meta?.hasPreviousPage)}
@@ -720,20 +718,21 @@ function AdminPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Audit logs</CardTitle>
-                <CardDescription>Chronological admin actions for moderation visibility.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {auditQuery.isLoading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-3xl" />
+                    <Skeleton key={index} className="h-28 rounded-md" />
                   ))
                 ) : auditQuery.isError ? (
                   <QueryErrorState label="audit logs" onRetry={() => void auditQuery.refetch()} />
                 ) : auditQuery.data?.data.length ? (
                   <>
-                    {auditQuery.data.data.map((log) => (
-                      <AdminAuditLogCard key={log.id} log={log} />
-                    ))}
+                    <div className="space-y-2">
+                      {auditQuery.data.data.map((log) => (
+                        <AdminAuditLogCard key={log.id} log={log} />
+                      ))}
+                    </div>
                     <PaginationControls
                       page={auditPage}
                       hasPrev={Boolean(auditQuery.data.meta?.hasPreviousPage)}
