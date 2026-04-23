@@ -70,11 +70,11 @@ export default function DiscoverPage() {
   const cta = React.useMemo(() => {
     if (session.isBooting) return null;
     if (!session.isAuthenticated)
-      return { href: `/sign-in?next=${encodeURIComponent("/creator")}`, label: t.noTracks };
+      return { href: `/sign-in?next=${encodeURIComponent("/creator")}`, label: "Sign in for creator tools" };
     if (session.user?.role === "creator" || session.user?.role === "admin")
       return { href: "/creator", label: tNav.upload };
     return null;
-  }, [session.isAuthenticated, session.isBooting, session.user?.role, t, tNav]);
+  }, [session.isAuthenticated, session.isBooting, session.user?.role, tNav]);
 
   const handlePlayAll = () => {
     if (!tracks.length) return;
@@ -173,7 +173,7 @@ export default function DiscoverPage() {
                         </div>
                       </button>
 
-                      <Link href={`/track/${c.slug}`} className="min-w-0 flex-1 group/link">
+                      <Link href={`/track/${c.slug}`} aria-label={`Open track ${c.title}`} className="min-w-0 flex-1 group/link">
                         <p
                           className={`truncate text-sm font-medium transition-colors group-hover/link:text-primary ${
                             isActive ? "text-primary" : "text-foreground"
