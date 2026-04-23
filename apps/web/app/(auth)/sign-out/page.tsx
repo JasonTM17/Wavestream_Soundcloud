@@ -52,8 +52,8 @@ export default function SignOutPage() {
       }
     >
       <div className="space-y-5">
-        <div className="flex items-start gap-3 rounded-md bg-[#282828] p-4">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black">
+        <div className="flex items-start gap-3 rounded-md bg-[hsl(var(--accent))] p-4">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-black">
             {state === "loading" ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogOut className="h-5 w-5" />}
           </div>
           <div className="space-y-1">
@@ -64,7 +64,7 @@ export default function SignOutPage() {
                   ? "Session cleared."
                   : "Sign-out needs a retry."}
             </p>
-            <p className="text-sm text-[#b3b3b3]">
+            <p className="text-sm text-[hsl(var(--muted-foreground))]">
               {state === "loading"
                 ? "This keeps the refresh cookie and browser state aligned before sending you back to sign in."
                 : state === "done"
@@ -83,3 +83,4 @@ export default function SignOutPage() {
     </AuthCard>
   );
 }
+
