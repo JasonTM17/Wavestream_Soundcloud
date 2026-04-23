@@ -52,7 +52,7 @@ export function LandingNav() {
             <Link href="/sign-in">{tCommon.signIn}</Link>
           </Button>
           <Button asChild size="sm" className="rounded-full">
-            <Link href="/sign-up">{tCommon.signUp}</Link>
+            <Link href="/sign-up">{tLanding.startFree}</Link>
           </Button>
         </div>
       </div>

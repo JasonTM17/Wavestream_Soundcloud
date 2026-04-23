@@ -30,7 +30,7 @@ export function LandingHeroText({ spotlightTrack, heroQueueTracks }: LandingHero
         <Button asChild size="lg" variant="outline" className="rounded-full">
           <Link href="/discover">
             <Play className="h-4 w-4" />
-            {tLanding.discoverMusic}
+            {tLanding.exploreDiscovery}
           </Link>
         </Button>
         <Button asChild size="lg" className="rounded-full">

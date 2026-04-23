@@ -96,6 +96,7 @@ export function LandingDiscoveryTabs({
 
                 <Link
                   href={`/track/${track.slug}`}
+                  aria-label={`Open track ${track.title}`}
                   className="flex min-w-0 flex-1 items-center gap-3"
                 >
                   <div

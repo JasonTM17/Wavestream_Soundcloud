@@ -5,6 +5,7 @@ import { LandingHeroText } from "@/components/marketing/landing-hero-text";
 import { LandingDiscoveryTabs } from "@/components/marketing/landing-discovery-tabs";
 import { LandingNav } from "@/components/marketing/landing-nav";
 import { LandingFooter } from "@/components/marketing/landing-footer";
+import { LandingCta } from "@/components/marketing/landing-cta";
 import { getPublicLandingData } from "@/lib/public-api";
 import { formatCompactNumber, formatDuration } from "@/lib/wavestream-api";
 
@@ -69,6 +70,9 @@ export default async function LandingPage() {
           </div>
         </section>
       )}
+
+      {/* CTA section — client component for i18n */}
+      <LandingCta />
 
       {/* Footer — client component for i18n */}
       <LandingFooter />
