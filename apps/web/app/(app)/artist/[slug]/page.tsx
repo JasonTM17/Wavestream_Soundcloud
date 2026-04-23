@@ -4,17 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ReportableType } from "@wavestream/shared";
-import { ArrowLeft, CirclePlus, UserPlus2 } from "lucide-react";
+import { ArrowLeft, Pause, Play, UserPlus2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ReportDialog } from "@/components/reports/report-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
+import { useT } from "@/lib/i18n";
 import { formatCompactNumber, toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
 import {
   useArtistProfileQuery,
@@ -24,29 +23,13 @@ import {
   useTracksQuery,
 } from "@/lib/wavestream-queries";
 
-export function buildArtistStats(input: {
-  followerCount: number;
-  trackCount: number;
-  playlistCount: number;
-  totalPlays: number;
-  totalLikes: number;
-}) {
-  return [
-    ["Followers", formatCompactNumber(input.followerCount)],
-    ["Uploaded tracks", formatCompactNumber(input.trackCount)],
-    ["Public playlists", formatCompactNumber(input.playlistCount)],
-    ["Total plays", formatCompactNumber(input.totalPlays)],
-    ["Total likes", formatCompactNumber(input.totalLikes)],
-  ] as const;
-}
-
 function ArtistSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-44 w-full rounded-md" />
+      <Skeleton className="h-44 w-full rounded-xl" />
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <Skeleton className="h-96 w-full rounded-md" />
-        <Skeleton className="h-96 w-full rounded-md" />
+        <Skeleton className="h-96 w-full rounded-xl" />
+        <Skeleton className="h-96 w-full rounded-xl" />
       </div>
     </div>
   );
@@ -56,13 +39,19 @@ export default function ArtistPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const session = useAuthSession();
+  const t = useT("artist");
+  const tCommon = useT("common");
+  const tDialogs = useT("dialogs");
   const artistSlug = typeof params.slug === "string" ? params.slug : "";
   const profile = useArtistProfileQuery(artistSlug);
   const artist = profile.data?.user;
   const tracksQuery = useTracksQuery({ artistUsername: artistSlug, limit: 12 });
   const playlistsQuery = usePublicPlaylistsQuery(artist?.id);
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
   const setQueue = usePlayerStore((state) => state.setQueue);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  const togglePlay = usePlayerStore((state) => state.togglePlay);
   const [following, setFollowing] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
   const followMutation = useToggleFollowMutation(artist?.id ?? "");
@@ -72,64 +61,43 @@ export default function ArtistPage() {
     setFollowing(Boolean(profile.data?.isFollowing));
   }, [profile.data?.isFollowing]);
 
-  if (!artistSlug) {
-    return <ArtistSkeleton />;
-  }
-
-  if (profile.isLoading) {
-    return <ArtistSkeleton />;
-  }
+  if (!artistSlug || profile.isLoading) return <ArtistSkeleton />;
 
   if (profile.isError || !artist) {
     return (
-      <Card className="border-0 bg-[#181818]">
-        <CardContent className="space-y-3 p-8">
-          <p className="text-lg font-bold text-white">Artist not found</p>
-          <p className="text-sm text-[#b3b3b3]">
-            The creator profile may still be private or unavailable.
-          </p>
-          <Button asChild variant="outline">
-            <Link href="/discover">
-              <ArrowLeft className="h-4 w-4" />
-              Back to discovery
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl bg-card border border-border p-8 space-y-3">
+        <p className="text-lg font-bold text-foreground">{t.notFound}</p>
+        <p className="text-sm text-muted-foreground">{t.notFoundDesc}</p>
+        <Button asChild variant="outline" className="rounded-full">
+          <Link href="/discover"><ArrowLeft className="h-4 w-4" />{tCommon.discover}</Link>
+        </Button>
+      </div>
     );
   }
 
-  const trackSummaries = tracksQuery.data ?? [];
-  const trackCards = trackSummaries.map(toTrackCard);
+  const trackCards = (tracksQuery.data ?? []).map(toTrackCard);
   const playlistCards = (playlistsQuery.data ?? []).map(toPlaylistCard);
-  const artistStats = buildArtistStats({
-    followerCount: artist.followerCount ?? 0,
-    trackCount: trackCards.length,
-    playlistCount: playlistCards.length,
-    totalPlays: trackSummaries.reduce((sum, track) => sum + track.playCount, 0),
-    totalLikes: trackSummaries.reduce((sum, track) => sum + track.likeCount, 0),
-  });
 
-  const playAll = () => {
-    if (!trackCards.length) {
-      return;
-    }
-
+  const handlePlayAll = () => {
+    if (!trackCards.length) return;
     setQueue(trackCards);
     playTrack(trackCards[0]);
   };
 
-  const openReportDialog = () => {
-    if (session.isBooting) {
-      toast("Checking your session...");
-      return;
-    }
+  const handleTrackPlay = (index: number) => {
+    const target = trackCards[index];
+    if (!target) return;
+    if (currentTrack?.id === target.id) { togglePlay(); return; }
+    setQueue(trackCards);
+    playTrack(target);
+  };
 
+  const openReportDialog = () => {
+    if (session.isBooting) return;
     if (!session.isAuthenticated) {
       router.push(`/sign-in?next=${encodeURIComponent(`/artist/${artistSlug}`)}`);
       return;
     }
-
     setIsReportOpen(true);
   };
 
@@ -141,93 +109,161 @@ export default function ArtistPage() {
       details: values.details,
     });
     setIsReportOpen(false);
-    toast.success("Report submitted to the moderation queue.");
+    toast.success(tDialogs.reportSubmitted);
   };
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" asChild className="w-fit px-0 text-[#b3b3b3] hover:text-white hover:bg-transparent">
-        <Link href="/discover">
-          <ArrowLeft className="h-4 w-4" />
-          Back to discovery
-        </Link>
+      <Button variant="ghost" asChild className="w-fit px-0 text-muted-foreground hover:text-foreground hover:bg-transparent">
+        <Link href="/discover"><ArrowLeft className="h-4 w-4" />{tCommon.discover}</Link>
       </Button>
 
-      <Card className="overflow-hidden bg-[#181818] border-none shadow-none">
-        <div className="h-44 bg-gradient-to-b from-[#282828] to-[#181818]" />
-        <CardContent className="-mt-20 grid gap-6 lg:grid-cols-[auto_1fr_auto]">
-          <Avatar className="h-28 w-28 border-4 border-[#181818] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-            <AvatarFallback className="bg-[#1ed760] text-black text-2xl font-bold">
+      {/* Artist header */}
+      <div className="overflow-hidden rounded-xl bg-card border border-border">
+        <div className="h-32 bg-linear-to-b from-primary/20 to-card" />
+        <div className="-mt-16 px-6 pb-6 grid gap-4 lg:grid-cols-[auto_1fr_auto]">
+          <Avatar className="h-24 w-24 border-4 border-card shadow-lg">
+            <AvatarFallback className="bg-primary text-white text-2xl font-bold">
               {artist.displayName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-3 pt-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="soft">Creator</Badge>
-              <Badge variant="outline">{formatCompactNumber(artist.followerCount)} followers</Badge>
+          <div className="space-y-2 pt-6">
+            <h1 className="text-3xl font-bold text-foreground">{artist.displayName}</h1>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>{formatCompactNumber(artist.followerCount ?? 0)} {t.followers}</span>
+              <span>·</span>
+              <span>{formatCompactNumber(trackCards.length)} {tCommon.tracks}</span>
             </div>
-            <h1 className="text-4xl font-bold text-white">{artist.displayName}</h1>
-            <p className="max-w-2xl text-[#b3b3b3]">
-              {artist.bio ?? "Public creator profile on WaveStream."}
-            </p>
+            {artist.bio && <p className="text-sm text-muted-foreground max-w-2xl">{artist.bio}</p>}
           </div>
-          <div className="flex items-start gap-3 pt-8">
-            <Button
-              variant={following ? "secondary" : "outline"}
-              onClick={() => {
-                setFollowing((value) => !value);
-                followMutation.mutate(!following, {
-                  onError: (error) => {
-                    setFollowing((value) => !value);
-                    toast.error(error instanceof Error ? error.message : "Failed to update follow.");
-                  },
-                });
-              }}
-            >
-              <UserPlus2 className="h-4 w-4" />
-              {following ? "Following" : "Follow"}
-            </Button>
-            <Button onClick={playAll} disabled={!trackCards.length}>
-              <CirclePlus className="h-4 w-4" />
-              Add to queue
-            </Button>
-            {session.user?.id !== artist.id ? (
-              <Button variant="outline" onClick={openReportDialog}>
-                Report
+          <div className="flex items-start gap-2 pt-6">
+            {session.isAuthenticated && session.user?.id !== artist.id && (
+              <Button
+                variant={following ? "secondary" : "default"}
+                className="rounded-full"
+                onClick={() => {
+                  setFollowing((v) => !v);
+                  followMutation.mutate(!following, {
+                    onError: (error) => {
+                      setFollowing((v) => !v);
+                      toast.error(error instanceof Error ? error.message : tCommon.somethingWentWrong);
+                    },
+                  });
+                }}
+              >
+                <UserPlus2 className="h-4 w-4" />
+                {following ? tCommon.following : tCommon.follow}
               </Button>
-            ) : null}
+            )}
+            <Button onClick={handlePlayAll} disabled={!trackCards.length} variant="outline" className="rounded-full">
+              <Play className="h-4 w-4" />
+              {tCommon.play}
+            </Button>
+            {session.user?.id !== artist.id && (
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={openReportDialog}>
+                {tCommon.report}
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Uploaded tracks</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        {/* Tracks */}
+        <div className="rounded-xl bg-card border border-border overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-border">
+            <h2 className="text-base font-bold text-foreground">{t.uploadedTracks}</h2>
+          </div>
+          <div className="py-2">
             {tracksQuery.isLoading ? (
-              Array.from({ length: 4 }).map((_, index) => (
-                <Skeleton key={index} className="h-14 w-full rounded-md" />
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2">
+                  <Skeleton className="h-10 w-10 rounded shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-1/2" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                </div>
               ))
             ) : trackCards.length ? (
-              trackCards.map((track, index) => (
-                <button
-                  key={track.id}
-                  type="button"
-                  onClick={() => {
-                    setQueue(trackCards);
-                    playTrack(track);
-                  }}
-                  className="flex w-full items-center gap-4 rounded-md bg-[#1f1f1f] hover:bg-[#282828] p-3 text-left transition-colors group"
-                >
-                  <Badge variant="soft">#{index + 1}</Badge>
+              trackCards.map((track, index) => {
+                const isActive = currentTrack?.id === track.id;
+                const isCurrentlyPlaying = isActive && isPlaying;
+                return (
                   <div
-                    className="h-12 w-12 rounded-md bg-[#282828] shrink-0"
+                    key={track.id}
+                    className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50"
+                  >
+                    <button
+                      onClick={() => handleTrackPlay(index)}
+                      aria-label={isCurrentlyPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
+                      className="relative h-10 w-10 shrink-0 rounded overflow-hidden"
+                    >
+                      <div
+                        className="absolute inset-0 bg-muted"
+                        style={
+                          track.coverUrl
+                            ? {
+                                backgroundImage: `url(${track.coverUrl})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                              }
+                            : undefined
+                        }
+                      />
+                      <div className={`absolute inset-0 flex items-center justify-center transition-all ${isActive ? "bg-black/50 opacity-100" : "bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/50"}`}>
+                        {isCurrentlyPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white ml-0.5" />}
+                      </div>
+                    </button>
+                    <Link href={`/track/${track.slug}`} className="min-w-0 flex-1 group/link">
+                      <p className={`truncate text-sm font-medium transition-colors group-hover/link:text-primary ${isActive ? "text-primary" : "text-foreground"}`}>
+                        {track.title}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {track.genreLabel}{track.genreLabel ? " · " : ""}{track.playsLabel} {tCommon.plays}
+                      </p>
+                    </Link>
+                    <span className="text-xs text-muted-foreground shrink-0">{track.durationLabel}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="px-5 py-6">
+                <p className="text-sm text-muted-foreground">{t.noTracks}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Playlists */}
+        <div className="rounded-xl bg-card border border-border overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-border">
+            <h2 className="text-base font-bold text-foreground">{t.playlists}</h2>
+          </div>
+          <div className="py-2">
+            {playlistsQuery.isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2">
+                  <Skeleton className="h-10 w-10 rounded shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))
+            ) : playlistCards.length ? (
+              playlistCards.map((playlist) => (
+                <Link
+                  key={playlist.id}
+                  href={`/playlist/${playlist.slug}`}
+                  className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50"
+                >
+                  <div
+                    className="h-10 w-10 shrink-0 rounded bg-muted"
                     style={
-                      track.coverUrl
+                      playlist.coverUrl
                         ? {
-                            backgroundImage: `url(${track.coverUrl})`,
+                            backgroundImage: `url(${playlist.coverUrl})`,
                             backgroundSize: "cover",
                             backgroundPosition: "center",
                           }
@@ -235,86 +271,28 @@ export default function ArtistPage() {
                     }
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold text-white group-hover:text-[#1ed760] transition-colors">{track.title}</p>
-                    <p className="truncate text-xs text-[#b3b3b3]">
-                      {track.genreLabel} • {track.playsLabel} plays
+                    <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                      {playlist.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {playlist.trackCount} {tCommon.tracks}
                     </p>
                   </div>
-                  <Badge variant="outline">{track.durationLabel}</Badge>
-                </button>
+                </Link>
               ))
             ) : (
-              <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
-                <p className="font-bold text-white mb-2">No tracks yet</p>
-                No public tracks are live on this profile yet.
+              <div className="px-5 py-4">
+                <p className="text-sm text-muted-foreground">{t.noPlaylists}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card>
-          <CardHeader>
-            <CardTitle>Profile stats</CardTitle>
-          </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {artistStats.map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="rounded-md bg-[#1f1f1f] p-4"
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">
-                      {label}
-                    </p>
-                    <p className="mt-2 text-xl font-bold text-white">{value}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-[#b3b3b3]">
-                Followers come from the profile itself, while plays, likes, tracks, and playlists
-                reflect the public catalog shown here.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Playlists and reposts</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {playlistsQuery.isLoading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={index} className="h-14 w-full rounded-md" />
-                ))
-              ) : playlistCards.length ? (
-                playlistCards.map((playlist) => (
-                  <Link
-                    key={playlist.id}
-                    href={`/playlist/${playlist.slug}`}
-                    className="flex items-center justify-between rounded-md bg-[#1f1f1f] hover:bg-[#282828] p-3 transition-colors group"
-                  >
-                    <div>
-                      <p className="font-bold text-white group-hover:text-white transition-colors">{playlist.title}</p>
-                      <p className="text-xs text-[#b3b3b3]">{playlist.description || "Playlist"}</p>
-                    </div>
-                    <Badge variant="soft">{playlist.trackCount} tracks</Badge>
-                  </Link>
-                ))
-              ) : (
-                <p className="text-sm text-[#b3b3b3]">
-                  No public playlists are live for this creator yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </section>
 
       <ReportDialog
         open={isReportOpen}
         onOpenChange={setIsReportOpen}
-        entityLabel="artist profile"
+        entityLabel="nghệ sĩ"
         entityName={artist.displayName}
         isPending={createReportMutation.isPending}
         onSubmit={handleCreateReport}

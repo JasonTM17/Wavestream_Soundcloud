@@ -8,6 +8,7 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  Pause,
   PencilLine,
   Play,
   ShieldAlert,
@@ -23,12 +24,11 @@ import {
 } from "@/components/playlists/playlist-editor-dialog";
 import { ShareActionButton } from "@/components/playlists/share-action-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthSession } from "@/lib/auth-store";
 import { usePlayerStore } from "@/lib/player-store";
+import { useT } from "@/lib/i18n";
 import { toPlaylistCard, toTrackCard } from "@/lib/wavestream-api";
 import {
   useCreateReportMutation,
@@ -42,15 +42,8 @@ import {
 function PlaylistSkeleton() {
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden bg-[#181818] border-none">
-        <Skeleton className="h-52 w-full rounded-none" />
-        <CardHeader className="space-y-3">
-          <Skeleton className="h-5 w-24 rounded-full" />
-          <Skeleton className="h-10 w-3/4" />
-          <Skeleton className="h-5 w-full" />
-        </CardHeader>
-      </Card>
-      <Skeleton className="h-80 w-full rounded-md" />
+      <Skeleton className="h-52 w-full rounded-xl" />
+      <Skeleton className="h-80 w-full rounded-xl" />
     </div>
   );
 }
@@ -65,10 +58,15 @@ export default function PlaylistPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const session = useAuthSession();
+  const tCommon = useT("common");
+  const t = useT("playlist");
   const playlistSlug = typeof params.slug === "string" ? params.slug : "";
   const playlistQuery = usePlaylistQuery(playlistSlug);
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
   const setQueue = usePlayerStore((state) => state.setQueue);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  const togglePlay = usePlayerStore((state) => state.togglePlay);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
@@ -92,93 +90,70 @@ export default function PlaylistPage() {
   const pendingRemoveTrack =
     playlistEntries.find((entry) => entry.track.id === pendingRemoveTrackId)?.track ?? null;
 
-  if (!playlistSlug) {
-    return <PlaylistSkeleton />;
-  }
-
-  if (playlistQuery.isLoading) {
-    return <PlaylistSkeleton />;
-  }
+  if (!playlistSlug || playlistQuery.isLoading) return <PlaylistSkeleton />;
 
   if (playlistQuery.isError || !playlistData || !playlist) {
     return (
-      <Card className="border-0 bg-[#181818]">
-        <CardContent className="space-y-3 p-8">
-          <p className="text-lg font-bold text-white">Playlist not available</p>
-          <p className="text-sm text-[#b3b3b3]">
-            The playlist may be private or missing.
-          </p>
-          <Button asChild variant="outline">
-            <Link href="/discover">
-              <ArrowLeft className="h-4 w-4" />
-              Back to discovery
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl bg-card border border-border p-8 space-y-3">
+        <p className="text-lg font-bold text-foreground">{t.notFound}</p>
+        <p className="text-sm text-muted-foreground">{t.notFoundDesc}</p>
+        <Button asChild variant="outline" className="rounded-full">
+          <Link href="/discover"><ArrowLeft className="h-4 w-4" />{tCommon.discover}</Link>
+        </Button>
+      </div>
     );
   }
 
   const playAll = () => {
-    if (!playlist.tracks.length) {
-      return;
-    }
-
+    if (!playlist.tracks.length) return;
     setQueue(playlist.tracks);
     playTrack(playlist.tracks[0]);
+  };
+
+  const handleTrackPlay = (index: number) => {
+    const track = playlist.tracks[index];
+    if (!track) return;
+    if (currentTrack?.id === track.id) { togglePlay(); return; }
+    setQueue(playlist.tracks);
+    playTrack(track);
   };
 
   const moveTrack = async (trackId: string, direction: "up" | "down") => {
     const currentOrder = playlistEntries.map((entry) => entry.track.id);
     const currentIndex = currentOrder.indexOf(trackId);
     const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentOrder.length) {
-      return;
-    }
-
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentOrder.length) return;
     const nextOrder = [...currentOrder];
     [nextOrder[currentIndex], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[currentIndex]];
-
     await reorderPlaylistMutation.mutateAsync({ trackIds: nextOrder });
-    toast.success("Playlist order updated.");
+    toast.success(t.orderUpdated);
   };
 
   const handleUpdatePlaylist = async (values: PlaylistEditorValues) => {
-    const updatedPlaylist = await updatePlaylistMutation.mutateAsync(toPlaylistPayload(values));
+    await updatePlaylistMutation.mutateAsync(toPlaylistPayload(values));
     setIsEditOpen(false);
-    toast.success(`Updated "${updatedPlaylist.title}".`);
+    toast.success(t.edited);
   };
 
   const handleDeletePlaylist = async () => {
-    const deletedTitle = playlist.title;
     await deletePlaylistMutation.mutateAsync();
     setIsDeleteOpen(false);
-    toast.success(`Deleted "${deletedTitle}".`);
+    toast.success(t.deleted);
     router.push("/library");
   };
 
   const handleRemoveTrack = async () => {
-    if (!pendingRemoveTrackId || !pendingRemoveTrack) {
-      return;
-    }
-
+    if (!pendingRemoveTrackId || !pendingRemoveTrack) return;
     await removeTrackMutation.mutateAsync(pendingRemoveTrackId);
     setPendingRemoveTrackId(null);
-    toast.success(`Removed "${pendingRemoveTrack.title}" from "${playlist.title}".`);
+    toast.success(t.trackRemoved);
   };
 
   const openReportDialog = () => {
-    if (session.isBooting) {
-      toast("Checking your session...");
-      return;
-    }
-
     if (!session.isAuthenticated) {
       router.push(`/sign-in?next=${encodeURIComponent(`/playlist/${playlistSlug}`)}`);
       return;
     }
-
     setIsReportOpen(true);
   };
 
@@ -190,218 +165,172 @@ export default function PlaylistPage() {
       details: values.details,
     });
     setIsReportOpen(false);
-    toast.success("Report submitted to the moderation queue.");
+    toast.success(t.reportSubmitted);
   };
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" asChild className="w-fit px-0 text-[#b3b3b3] hover:text-white hover:bg-transparent">
-        <Link href="/discover">
-          <ArrowLeft className="h-4 w-4" />
-          Back to discovery
-        </Link>
+      <Button variant="ghost" asChild className="w-fit px-0 text-muted-foreground hover:text-foreground hover:bg-transparent">
+        <Link href="/discover"><ArrowLeft className="h-4 w-4" />{tCommon.discover}</Link>
       </Button>
 
-      <Card className="overflow-hidden bg-[#181818] border-none shadow-none">
+      {/* Playlist header */}
+      <div className="overflow-hidden rounded-xl bg-card border border-border">
         <div
-          className="h-52 bg-[#282828]"
+          className="h-40 bg-linear-to-b from-muted to-card"
           style={
             playlist.coverUrl
               ? {
-                  backgroundImage: `linear-gradient(180deg, rgba(24, 24, 24, 0) 0%, #181818 100%), url(${playlist.coverUrl})`,
+                  backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.3), hsl(var(--card))), url(${playlist.coverUrl})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }
               : undefined
           }
         />
-        <CardHeader className="pt-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="soft">Playlist</Badge>
-            <Badge variant="outline">{playlist.trackCount} tracks</Badge>
-            <Badge variant="outline">{playlist.totalDurationLabel}</Badge>
-            <Badge variant="outline">{playlist.isPublic ? "Public" : "Private"}</Badge>
-          </div>
-          <CardTitle className="text-4xl text-white mt-4">{playlist.title}</CardTitle>
-          <CardDescription className="max-w-2xl text-base">{playlist.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button onClick={playAll} disabled={!playlist.tracks.length}>
-            <Play className="h-4 w-4" />
-            Play all
-          </Button>
-          <ShareActionButton
-            title={playlist.title}
-            text={`Listen to the playlist ${playlist.title} on WaveStream.`}
-            onSuccess={(method) => {
-              toast.success(
-                method === "native"
-                  ? "Share sheet opened."
-                  : "Playlist link copied to clipboard.",
-              );
-            }}
-            onError={(error) => {
-              toast.error(error.message);
-            }}
-          >
-            Share
-          </ShareActionButton>
-          {!isOwner ? (
-            <Button type="button" variant="outline" onClick={openReportDialog}>
-              <ShieldAlert className="h-4 w-4" />
-              Report
-            </Button>
-          ) : null}
-          {isOwner ? (
-            <>
-              <Button type="button" variant="outline" onClick={() => setIsEditOpen(true)}>
-                <PencilLine className="h-4 w-4" />
-                Edit
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(true)}>
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-            </>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Tracks in this playlist</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {playlistEntries.length ? (
-              playlistEntries.map((entry, index) => {
-                const track = toTrackCard(entry.track);
-                const isFirst = index === 0;
-                const isLast = index === playlistEntries.length - 1;
-
-                return (
-                  <div
-                    key={track.id}
-                    className="rounded-md bg-[#1f1f1f] p-3 hover:bg-[#282828] transition-colors"
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQueue(playlist.tracks);
-                          playTrack(track);
-                        }}
-                        className="flex min-w-0 flex-1 items-center gap-4 text-left group"
-                      >
-                        <Badge variant="soft">#{index + 1}</Badge>
-                        <div
-                          className="h-12 w-12 rounded-md bg-[#282828] shrink-0"
-                          style={
-                            track.coverUrl
-                              ? {
-                                  backgroundImage: `url(${track.coverUrl})`,
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                }
-                              : undefined
-                          }
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-bold text-white group-hover:text-[#1ed760] transition-colors">{track.title}</p>
-                          <p className="truncate text-xs text-[#b3b3b3]">
-                            {track.artistName} • {track.genreLabel}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <Badge variant="outline">{track.durationLabel}</Badge>
-                        </div>
-                      </button>
-
-                      {isOwner ? (
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={isFirst || reorderPlaylistMutation.isPending}
-                            onClick={() => void moveTrack(track.id, "up")}
-                          >
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={isLast || reorderPlaylistMutation.isPending}
-                            onClick={() => void moveTrack(track.id, "down")}
-                          >
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={removeTrackMutation.isPending}
-                            onClick={() => setPendingRemoveTrackId(track.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-md bg-[#1f1f1f] p-6 text-sm text-[#b3b3b3]">
-                <p className="font-bold text-white mb-2">Playlist is empty</p>
-                Tracks will appear here after the owner adds them.
-              </div>
+        <div className="px-6 pb-6 pt-4 space-y-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Playlist · {playlist.isPublic ? "Công khai" : "Riêng tư"}</p>
+            <h1 className="text-3xl font-bold text-foreground">{playlist.title}</h1>
+            {playlist.description && (
+              <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{playlist.description}</p>
             )}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Playlist owner</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <Avatar className="h-14 w-14">
-                <AvatarFallback className="bg-[#1ed760] text-black text-sm font-bold">
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
                   {playlist.owner.displayName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-white">{playlist.owner.displayName}</p>
-                <p className="text-xs text-[#b3b3b3]">@{playlist.owner.username}</p>
-              </div>
-              <Badge variant="soft">{playlist.isPublic ? "Public" : "Private"}</Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Playlist stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                ["Tracks", playlist.trackCount],
-                ["Duration", playlist.totalDurationLabel],
-                ["Followers", playlist.owner.followerCount ?? 0],
-              ].map(([label, value]) => (
-                <div
-                  key={label as string}
-                  className="flex items-center justify-between rounded-md bg-[#1f1f1f] px-4 py-3"
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b3b3b3]">{label as string}</span>
-                  <span className="font-bold text-white">{value as string | number}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+              <Link href={`/artist/${playlist.owner.username}`} className="hover:text-primary transition-colors font-medium">
+                {playlist.owner.displayName}
+              </Link>
+              <span>·</span>
+              <span>{playlist.trackCount} {tCommon.tracks}</span>
+              <span>·</span>
+              <span>{playlist.totalDurationLabel}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={playAll} disabled={!playlist.tracks.length} className="rounded-full">
+              <Play className="h-4 w-4" />
+              {tCommon.play}
+            </Button>
+            <ShareActionButton
+              title={playlist.title}
+              text={`Nghe playlist ${playlist.title} trên WaveStream.`}
+              onSuccess={(method) => toast.success(method === "native" ? tCommon.sharedNative : tCommon.linkCopied)}
+              onError={(error) => toast.error(error.message)}
+            >
+              {tCommon.share}
+            </ShareActionButton>
+            {!isOwner && (
+              <Button type="button" variant="outline" className="rounded-full" onClick={openReportDialog}>
+                <ShieldAlert className="h-4 w-4" />
+                {tCommon.report}
+              </Button>
+            )}
+            {isOwner && (
+              <>
+                <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsEditOpen(true)}>
+                  <PencilLine className="h-4 w-4" />
+                  {tCommon.edit}
+                </Button>
+                <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsDeleteOpen(true)}>
+                  <Trash2 className="h-4 w-4" />
+                  {tCommon.delete}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
+
+      {/* Track list */}
+      <div className="rounded-xl bg-card border border-border overflow-hidden">
+        <div className="px-5 pt-5 pb-3 border-b border-border">
+          <h2 className="text-base font-bold text-foreground">{t.tracks}</h2>
+        </div>
+        <div className="py-2">
+          {playlistEntries.length ? (
+            playlistEntries.map((entry, index) => {
+              const track = toTrackCard(entry.track);
+              const isFirst = index === 0;
+              const isLast = index === playlistEntries.length - 1;
+              const isActive = currentTrack?.id === track.id;
+              const isCurrentlyPlaying = isActive && isPlaying;
+              return (
+                <div
+                  key={track.id}
+                  className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleTrackPlay(index)}
+                    className="relative h-10 w-10 shrink-0 rounded overflow-hidden"
+                  >
+                    <div
+                      className="absolute inset-0 bg-muted"
+                      style={
+                        track.coverUrl
+                          ? {
+                              backgroundImage: `url(${track.coverUrl})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }
+                          : undefined
+                      }
+                    />
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all ${isActive ? "bg-black/50 opacity-100" : "bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/50"}`}>
+                      {isCurrentlyPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white ml-0.5" />}
+                    </div>
+                  </button>
+                  <Link href={`/track/${track.slug}`} className="min-w-0 flex-1 group/link">
+                    <p className={`truncate text-sm font-medium transition-colors group-hover/link:text-primary ${isActive ? "text-primary" : "text-foreground"}`}>
+                      {track.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {track.artistName}{track.genreLabel ? ` · ${track.genreLabel}` : ""}
+                    </p>
+                  </Link>
+                  <span className="text-xs text-muted-foreground shrink-0">{track.durationLabel}</span>
+                  {isOwner && (
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        type="button" size="icon" variant="ghost"
+                        disabled={isFirst || reorderPlaylistMutation.isPending}
+                        onClick={() => void moveTrack(track.id, "up")}
+                        className="h-7 w-7"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button" size="icon" variant="ghost"
+                        disabled={isLast || reorderPlaylistMutation.isPending}
+                        onClick={() => void moveTrack(track.id, "down")}
+                        className="h-7 w-7"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button" size="icon" variant="ghost"
+                        disabled={removeTrackMutation.isPending}
+                        onClick={() => setPendingRemoveTrackId(track.id)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-5 py-6">
+              <p className="text-sm text-muted-foreground">{t.emptyPlaylist}</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <PlaylistEditorDialog
         open={isEditOpen}
@@ -421,8 +350,8 @@ export default function PlaylistPage() {
         onOpenChange={setIsDeleteOpen}
         entityName={playlist.title}
         entityLabel="playlist"
-        dialogDescription="Deleting this playlist removes the collection from your library."
-        confirmLabel="Delete playlist"
+        dialogDescription="Xoá playlist này sẽ xoá toàn bộ danh sách phát."
+        confirmLabel="Xoá playlist"
         isPending={deletePlaylistMutation.isPending}
         onConfirm={handleDeletePlaylist}
       />
@@ -431,10 +360,10 @@ export default function PlaylistPage() {
         open={Boolean(pendingRemoveTrackId)}
         onOpenChange={(open) => !open && setPendingRemoveTrackId(null)}
         entityName={pendingRemoveTrack?.title}
-        entityLabel="track"
-        dialogTitle="Remove track"
-        dialogDescription="This only removes the track from the current playlist."
-        confirmLabel="Remove track"
+        entityLabel="bài hát"
+        dialogTitle="Xoá khỏi playlist"
+        dialogDescription="Chỉ xoá bài hát này khỏi playlist hiện tại."
+        confirmLabel="Xoá bài hát"
         isPending={removeTrackMutation.isPending}
         onConfirm={handleRemoveTrack}
       />
