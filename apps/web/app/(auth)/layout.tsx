@@ -39,21 +39,21 @@ export default async function AuthLayout({
               <div className="space-y-6">
                 <div className="max-w-xl space-y-4">
                   <h1 className="text-4xl font-bold tracking-tight text-foreground">
-                    Âm nhạc không giới hạn
+                    Unlimited music
                   </h1>
                   <p className="text-base text-muted-foreground">
-                    Khám phá âm nhạc từ các nghệ sĩ trên toàn cầu. Đăng ký miễn phí.
+                    Discover music from artists around the world. Sign up for free.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3" data-testid="auth-cta-row">
                   <Button asChild size="lg">
                     <Link href="/">
                       <Headphones className="h-4 w-4" />
-                      Nghe ngay
+                      Listen now
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <Link href="/discover">Khám phá</Link>
+                    <Link href="/discover">Preview the feed</Link>
                   </Button>
                 </div>
               </div>
@@ -70,10 +70,10 @@ export default async function AuthLayout({
 
               <div className="text-xs text-muted-foreground" data-testid="auth-credits">
                 <Link href="/about" className="hover:text-primary transition-colors">
-                  Giới thiệu
+                  About
                 </Link>
                 {" · "}
-                <span>Portfolio · Nguyễn Sơn</span>
+                <span>Portfolio project by Nguyễn Sơn</span>
               </div>
             </section>
 
