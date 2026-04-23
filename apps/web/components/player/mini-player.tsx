@@ -95,34 +95,36 @@ export function MiniPlayer() {
   const repostMutation = useToggleTrackReactionMutation(currentTrack?.slug ?? "", "repost");
 
   const handleLike = React.useCallback(() => {
-    if (!hasTrack) return;
+    if (!currentTrack) return;
     if (!session.isAuthenticated) {
-      const next = currentTrack?.slug ? `/track/${currentTrack.slug}` : "/sign-in";
+      const next = `/track/${currentTrack.slug}`;
       router.push(`/sign-in?next=${encodeURIComponent(next)}`);
       return;
     }
     const next = !liked;
     setLiked(next);
     likeMutation.mutate(next, { onError: () => setLiked((v) => !v) });
-  }, [hasTrack, session.isAuthenticated, currentTrack?.slug, liked, likeMutation, router]);
+  }, [currentTrack, session.isAuthenticated, liked, likeMutation, router]);
 
   const handleRepost = React.useCallback(() => {
-    if (!hasTrack) return;
+    if (!currentTrack) return;
     if (!session.isAuthenticated) {
-      const next = currentTrack?.slug ? `/track/${currentTrack.slug}` : "/sign-in";
+      const next = `/track/${currentTrack.slug}`;
       router.push(`/sign-in?next=${encodeURIComponent(next)}`);
       return;
     }
     const next = !reposted;
     setReposted(next);
     repostMutation.mutate(next, { onError: () => setReposted((v) => !v) });
-  }, [hasTrack, session.isAuthenticated, currentTrack?.slug, reposted, repostMutation, router]);
+  }, [currentTrack, session.isAuthenticated, reposted, repostMutation, router]);
 
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
   const statusLabel = error ? t.error : isBuffering ? t.buffering : currentTrack?.genreLabel ?? "";
 
   return (
-    <div className="relative">
+    // z-10 ensures the player bar sits above page content that might scroll into view.
+    // isolate creates a stacking context so inner elements can't bleed outside.
+    <div className="relative z-10 isolate">
       {/* Queue drawer */}
       {queueOpen && (
         <div className="absolute bottom-full left-0 right-0 border-t border-border bg-card shadow-2xl">
@@ -159,7 +161,7 @@ export function MiniPlayer() {
                       )}
                     >
                       <div
-                        className="h-8 w-8 shrink-0 rounded bg-muted"
+                        className="h-8 w-8 shrink-0 overflow-hidden rounded bg-muted"
                         style={
                           track.coverUrl
                             ? {
@@ -197,7 +199,10 @@ export function MiniPlayer() {
               className="group flex items-center gap-2.5 min-w-0 flex-1"
             >
               <div
-                className={cn("h-12 w-12 shrink-0 rounded", !currentTrack?.coverUrl && "bg-muted")}
+                className={cn(
+                  "h-12 w-12 shrink-0 overflow-hidden rounded",
+                  !currentTrack?.coverUrl && "bg-muted",
+                )}
                 style={
                   currentTrack?.coverUrl
                     ? {
