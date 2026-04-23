@@ -5,108 +5,147 @@
 
 English | [Tiếng Việt](./README.vi.md)
 
-WaveStream is a portfolio-grade music streaming platform built as a pnpm monorepo. It combines a Next.js App Router frontend, a NestJS API, PostgreSQL, Redis, MinIO, and Mailpit into a Docker-first local stack that feels close to a real product rather than a starter template.
+WaveStream is a portfolio-grade music streaming platform — a full-stack SoundCloud clone built from scratch as a pnpm monorepo. It combines a Next.js 16 App Router frontend, a NestJS 11 API, PostgreSQL, Redis, MinIO, and Mailpit into a Docker-first local stack that feels close to a real production product.
 
-## Portfolio Note
+> **Portfolio project by [Nguyễn Sơn](mailto:jasonbmt06@gmail.com)** · [GitHub](https://github.com/JasonTM17/wavestream_soundcloud)
 
-This project is part of the portfolio of Nguyễn Sơn. For feedback, collaboration ideas, or portfolio inquiries, you can reach out at `jasonbmt06@gmail.com`.
+---
 
-WaveStream is built for learning and portfolio purposes. Feedback, suggestions, and constructive contributions are always welcome.
+## Features
 
-## What's Included
+| Area | What's covered |
+|---|---|
+| **Listener** | Discovery rails, search, persistent audio player, queue, playlists, likes, reposts, comments, follow |
+| **Creator** | Upload & manage tracks, creator dashboard with analytics |
+| **Admin** | Report queue, content moderation (hide/restore), audit log, user role management |
+| **Auth** | JWT access tokens, refresh-cookie rotation, password reset via email, protected routes |
+| **Infrastructure** | Docker Compose full stack, GitHub Actions CI/CD, GHCR image publishing |
 
-- Listener experience with discovery, search, track playback, playlists, follows, likes, reposts, and comments.
-- Creator tools for uploads, owned-track management, and dashboard analytics.
-- Admin moderation with report review, target previews, and audit-friendly actions.
-- Secure auth with access tokens, refresh-cookie rotation, password reset, and protected routes.
-- Persistent audio player, queue state, and route-safe playback behavior.
+---
 
-## Monorepo Architecture
+## Monorepo Structure
 
-- `apps/web`: Next.js frontend with the public site, auth shell, app shell, and player/runtime state.
-- `apps/api`: NestJS API for auth, tracks, playlists, discovery, admin, analytics, storage, and health checks.
-- `packages/shared`: shared enums, DTOs, pagination contracts, and cross-app validation helpers.
-- `docker-compose.yml`: the local orchestration file for the full app stack.
-- `docker/`: production-oriented Dockerfiles for the web and API services.
-
-## Local Startup
-
-1. Copy `.env.example` to `.env` and keep the local defaults unless your machine already uses one of the mapped ports.
-2. Run `pnpm install`.
-3. Start the full stack with `docker compose up --build`.
-4. Open the key services:
-   - Web: `http://localhost:3000`
-   - API health: `http://localhost:4000/api/health`
-   - Mailpit inbox: `http://localhost:8025`
-   - MinIO console: `http://localhost:9001`
-   - PostgreSQL host port: `localhost:5433` by default
-
-The compose stack starts PostgreSQL, Redis, MinIO, Mailpit, API migrations, API seed data, the API service, and the web app in the right order.
-
-## Seeded Accounts
-
-- Admin: `admin@wavestream.local` / `Admin123!`
-- Creator: `solis@wavestream.demo` / `DemoPass123!`
-- Listener: `ivy@wavestream.demo` / `DemoPass123!`
-
-## Useful Commands
-
-```bash
-pnpm dev
-pnpm build
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm db:migrate
-pnpm db:seed
-pnpm smoke:docker
+```
+.
+├── apps/
+│   ├── web/          # Next.js 16 — landing, auth, app shell, player
+│   └── api/          # NestJS 11 — auth, tracks, playlists, discovery, admin
+├── packages/
+│   └── shared/       # Shared DTOs, enums, and validation contracts
+└── docker-compose.yml
 ```
 
-## Docker Workflow
+---
 
-- `docker compose up --build` boots the complete local environment from scratch.
-- `docker compose down -v --remove-orphans` tears everything down and removes volumes if you want a clean reset.
-- The API container runs migrations and seed data through the compose dependency chain, so a fresh stack comes up with demo content already populated.
+## Tech Stack
 
-## Environment
+**Frontend** · Next.js 16, React 19, TypeScript, Tailwind CSS 4, Radix UI, TanStack Query, Zustand
 
-The canonical environment template is `.env.example`. The main groups are:
+**Backend** · NestJS 11, TypeORM, PostgreSQL 16, Redis 7, BullMQ, Socket.IO, JWT/Passport
 
-- `DB_*` for PostgreSQL connectivity and credentials.
-- `REDIS_*` for rate limiting and cache behavior.
-- `MINIO_*` for object storage and generated media URLs.
-- `JWT_*` for access and refresh token signing.
-- `SMTP_*` for Mailpit or a real mail provider.
-- `ADMIN_*` for the seeded admin account.
-- `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, and `INTERNAL_API_URL` for web/API routing.
+**Storage & Infra** · MinIO (S3-compatible), Docker, GitHub Actions, GHCR
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+, pnpm 9+, Docker
+
+### Steps
+
+```bash
+# 1. Clone and install
+git clone https://github.com/JasonTM17/wavestream_soundcloud.git
+cd wavestream_soundcloud
+pnpm install
+
+# 2. Configure environment
+cp .env.example .env
+# The default values work for local Docker — no changes needed
+
+# 3. Start the full stack
+docker compose up --build
+```
+
+Services after startup:
+
+| Service | URL |
+|---|---|
+| Web app | http://localhost:3000 |
+| API health | http://localhost:4000/api/health |
+| API docs (Swagger) | http://localhost:4000/api/docs |
+| Mailpit inbox | http://localhost:8025 |
+| MinIO console | http://localhost:9001 |
+
+---
+
+## Demo Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@wavestream.local` | `Admin123!` |
+| Creator | `solis@wavestream.demo` | `DemoPass123!` |
+| Listener | `ivy@wavestream.demo` | `DemoPass123!` |
+
+---
+
+## Development
+
+Run everything locally without Docker:
+
+```bash
+pnpm dev          # Start web (port 3000) + API (port 4000) in watch mode
+pnpm build        # Production build (both apps)
+pnpm lint         # ESLint across all workspaces
+pnpm typecheck    # TypeScript strict check
+pnpm test         # Unit tests (Vitest + Jest)
+pnpm test:e2e     # End-to-end tests (Playwright)
+pnpm db:migrate   # Run pending TypeORM migrations
+pnpm db:seed      # Seed demo data
+pnpm smoke:docker # Docker smoke test
+```
+
+---
+
+## Environment Reference
+
+| Group | Variables |
+|---|---|
+| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` |
+| Redis | `REDIS_HOST`, `REDIS_PORT` |
+| MinIO | `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET` |
+| JWT | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN` |
+| SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` |
+| App | `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, `INTERNAL_API_URL` |
+
+See `.env.example` for all values with descriptions.
+
+---
 
 ## CI/CD
 
-- CI validates install, lint, typecheck, test, build, Playwright end-to-end coverage, and the Docker smoke path from `.github/workflows/ci.yml`.
-- CD publishes container images to GitHub Container Registry from `.github/workflows/cd.yml`.
-- Canonical image names:
-  - `ghcr.io/jasontm17/wavestream-web`
-  - `ghcr.io/jasontm17/wavestream-api`
+- **CI** (`.github/workflows/ci.yml`): install → lint → typecheck → unit test → build → Playwright E2E → Docker smoke
+- **CD** (`.github/workflows/cd.yml`): publishes Docker images to GHCR on merge to `main`
 
-## Suggested Demo Path
+Container images:
+- `ghcr.io/jasontm17/wavestream-web`
+- `ghcr.io/jasontm17/wavestream-api`
 
-1. Open the landing page and point out the public discovery rails.
-2. Sign in as the creator account and show the persistent player, library, and creator dashboard.
-3. Open a track page, demonstrate like, repost, comment, and add-to-playlist actions.
-4. Visit the playlist page and show add, reorder, edit, and delete controls for the owner.
-5. Sign in as the admin account and show the moderation queue with target previews.
-6. Open Mailpit to show the password-reset flow is wired end to end.
+---
 
-## Further Reading
+## Demo Walkthrough
 
-- [Project blurbs for CV and LinkedIn](./docs/PROJECT-BLURBS.md)
-- [Project blurbs for CV and LinkedIn - Vietnamese](./docs/PROJECT-BLURBS.vi.md)
-- [Project summary](./docs/PROJECT-SUMMARY.md)
-- [Project summary - Vietnamese](./docs/PROJECT-SUMMARY.vi.md)
-- [Portfolio case study](./docs/CASE-STUDY.md)
-- [Portfolio case study - Vietnamese](./docs/CASE-STUDY.vi.md)
-- [Deployment guide](./docs/DEPLOYMENT.md)
-- [Deployment guide - Vietnamese](./docs/DEPLOYMENT.vi.md)
-- [Demo walkthrough](./docs/DEMO-WALKTHROUGH.md)
-- [Demo walkthrough - Vietnamese](./docs/DEMO-WALKTHROUGH.vi.md)
+1. Open the landing page — browse public discovery rails without signing in.
+2. Sign in as **Creator** → persistent player, library, creator dashboard.
+3. Open a track → like, repost, comment, add to playlist.
+4. Visit a playlist → reorder tracks, edit metadata (as owner).
+5. Sign in as **Admin** → moderation queue, report review, user role management.
+6. Open Mailpit at `http://localhost:8025` → password-reset email flow end-to-end.
+
+---
+
+## License
+
+MIT — built for learning and portfolio purposes. Feedback and contributions are welcome.

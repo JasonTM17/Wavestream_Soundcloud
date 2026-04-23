@@ -5,108 +5,147 @@
 
 [English](./README.md) | Tiếng Việt
 
-WaveStream là một nền tảng streaming âm nhạc mang tính portfolio, được xây dựng dưới dạng pnpm monorepo. Dự án kết hợp frontend Next.js App Router, API NestJS, PostgreSQL, Redis, MinIO và Mailpit thành một local stack chạy bằng Docker, đủ gần với một sản phẩm thật thay vì chỉ là starter template.
+WaveStream là một nền tảng streaming nhạc cấp độ portfolio — bản clone full-stack của SoundCloud được xây dựng từ đầu dưới dạng pnpm monorepo. Dự án kết hợp frontend Next.js 16 App Router, API NestJS 11, PostgreSQL, Redis, MinIO và Mailpit thành một stack Docker-first cảm giác gần với sản phẩm production thực sự.
 
-## Ghi Chú Portfolio
+> **Dự án portfolio của [Nguyễn Sơn](mailto:jasonbmt06@gmail.com)** · [GitHub](https://github.com/JasonTM17/wavestream_soundcloud)
 
-Dự án này thuộc portfolio của Nguyễn Sơn. Nếu bạn muốn góp ý, trao đổi ý tưởng hợp tác hoặc liên hệ về portfolio, vui lòng gửi email tới `jasonbmt06@gmail.com`.
+---
 
-WaveStream được xây dựng cho mục đích học tập và portfolio. Mọi góp ý, đề xuất và đóng góp xây dựng đều rất được hoan nghênh.
+## Tính năng
 
-## Bao Gồm Những Gì
+| Khu vực | Nội dung |
+|---|---|
+| **Listener** | Khám phá, tìm kiếm, phát nhạc liên tục, queue, playlist, like, repost, bình luận, theo dõi |
+| **Creator** | Upload & quản lý bài hát, dashboard analytics |
+| **Admin** | Hàng đợi báo cáo, kiểm duyệt nội dung (ẩn/khôi phục), audit log, quản lý role người dùng |
+| **Auth** | JWT access token, refresh-cookie rotation, đặt lại mật khẩu qua email, route được bảo vệ |
+| **Hạ tầng** | Docker Compose full stack, GitHub Actions CI/CD, publish image lên GHCR |
 
-- Trải nghiệm cho người nghe với discovery, tìm kiếm, phát nhạc, playlist, follow, like, repost và bình luận.
-- Công cụ cho creator để upload, quản lý track của mình và xem analytics trên dashboard.
-- Moderation cho admin với hàng đợi report, xem trước target và các thao tác có log rõ ràng.
-- Xác thực an toàn với access token, refresh-cookie rotation, reset mật khẩu và route được bảo vệ.
-- Audio player cố định, queue state và hành vi phát nhạc ổn định khi chuyển route.
+---
 
-## Kiến Trúc Monorepo
+## Cấu trúc Monorepo
 
-- `apps/web`: frontend Next.js cho trang public, auth shell, app shell và state của player/runtime.
-- `apps/api`: API NestJS cho auth, tracks, playlists, discovery, admin, analytics, storage và health check.
-- `packages/shared`: enums, DTO, contract phân trang và helper validation dùng chung giữa các app.
-- `docker-compose.yml`: file orchestration local cho toàn bộ stack.
-- `docker/`: Dockerfile theo hướng production cho web và API.
-
-## Khởi Chạy Local
-
-1. Copy `.env.example` sang `.env` và giữ các giá trị mặc định local, trừ khi máy bạn đã dùng trùng một port nào đó.
-2. Chạy `pnpm install`.
-3. Khởi động toàn bộ stack bằng `docker compose up --build`.
-4. Mở các dịch vụ chính:
-   - Web: `http://localhost:3000`
-   - API health: `http://localhost:4000/api/health`
-   - Mailpit inbox: `http://localhost:8025`
-   - MinIO console: `http://localhost:9001`
-   - PostgreSQL host port: mặc định là `localhost:5433`
-
-Compose stack sẽ tự khởi động PostgreSQL, Redis, MinIO, Mailpit, migrations của API, seed data của API, dịch vụ API và web app theo đúng thứ tự.
-
-## Tài Khoản Seed Sẵn
-
-- Admin: `admin@wavestream.local` / `Admin123!`
-- Creator: `solis@wavestream.demo` / `DemoPass123!`
-- Listener: `ivy@wavestream.demo` / `DemoPass123!`
-
-## Các Lệnh Hữu Ích
-
-```bash
-pnpm dev
-pnpm build
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm db:migrate
-pnpm db:seed
-pnpm smoke:docker
+```
+.
+├── apps/
+│   ├── web/          # Next.js 16 — landing, auth, app shell, player
+│   └── api/          # NestJS 11 — auth, tracks, playlists, discovery, admin
+├── packages/
+│   └── shared/       # DTOs, enums và validation contracts dùng chung
+└── docker-compose.yml
 ```
 
-## Quy Trình Docker
+---
 
-- `docker compose up --build` khởi động toàn bộ môi trường local từ đầu.
-- `docker compose down -v --remove-orphans` dừng toàn bộ stack và xóa volumes nếu bạn muốn reset sạch.
-- Container API sẽ chạy migrations và seed data qua chuỗi dependency của compose, nên một stack mới lên sẽ có sẵn dữ liệu demo.
+## Stack Công nghệ
 
-## Môi Trường
+**Frontend** · Next.js 16, React 19, TypeScript, Tailwind CSS 4, Radix UI, TanStack Query, Zustand
 
-Template môi trường chuẩn là `.env.example`. Các nhóm biến chính gồm:
+**Backend** · NestJS 11, TypeORM, PostgreSQL 16, Redis 7, BullMQ, Socket.IO, JWT/Passport
 
-- `DB_*` cho kết nối và thông tin đăng nhập PostgreSQL.
-- `REDIS_*` cho rate limiting và cache.
-- `MINIO_*` cho object storage và URL media sinh ra.
-- `JWT_*` cho việc ký access token và refresh token.
-- `SMTP_*` cho Mailpit hoặc nhà cung cấp mail thật.
-- `ADMIN_*` cho tài khoản admin seed sẵn.
-- `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, và `INTERNAL_API_URL` cho routing web/API.
+**Storage & Hạ tầng** · MinIO (S3-compatible), Docker, GitHub Actions, GHCR
+
+---
+
+## Khởi động nhanh
+
+### Yêu cầu
+
+- Node.js 20+, pnpm 9+, Docker
+
+### Các bước
+
+```bash
+# 1. Clone và cài đặt
+git clone https://github.com/JasonTM17/wavestream_soundcloud.git
+cd wavestream_soundcloud
+pnpm install
+
+# 2. Cấu hình môi trường
+cp .env.example .env
+# Các giá trị mặc định hoạt động tốt với Docker local — không cần thay đổi
+
+# 3. Khởi động toàn bộ stack
+docker compose up --build
+```
+
+Các service sau khi khởi động:
+
+| Service | URL |
+|---|---|
+| Web app | http://localhost:3000 |
+| API health | http://localhost:4000/api/health |
+| API docs (Swagger) | http://localhost:4000/api/docs |
+| Mailpit inbox | http://localhost:8025 |
+| MinIO console | http://localhost:9001 |
+
+---
+
+## Tài khoản Demo
+
+| Role | Email | Mật khẩu |
+|---|---|---|
+| Admin | `admin@wavestream.local` | `Admin123!` |
+| Creator | `solis@wavestream.demo` | `DemoPass123!` |
+| Listener | `ivy@wavestream.demo` | `DemoPass123!` |
+
+---
+
+## Phát triển
+
+Chạy local không cần Docker:
+
+```bash
+pnpm dev          # Khởi động web (cổng 3000) + API (cổng 4000) ở chế độ watch
+pnpm build        # Build production (cả hai app)
+pnpm lint         # ESLint toàn bộ workspaces
+pnpm typecheck    # Kiểm tra TypeScript strict
+pnpm test         # Unit tests (Vitest + Jest)
+pnpm test:e2e     # End-to-end tests (Playwright)
+pnpm db:migrate   # Chạy TypeORM migrations
+pnpm db:seed      # Seed dữ liệu demo
+pnpm smoke:docker # Docker smoke test
+```
+
+---
+
+## Tham chiếu Environment
+
+| Nhóm | Biến môi trường |
+|---|---|
+| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` |
+| Redis | `REDIS_HOST`, `REDIS_PORT` |
+| MinIO | `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET` |
+| JWT | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN` |
+| SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` |
+| App | `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, `INTERNAL_API_URL` |
+
+Xem `.env.example` để biết tất cả các giá trị kèm mô tả.
+
+---
 
 ## CI/CD
 
-- CI xác thực chuỗi install, lint, typecheck, test, build, Playwright end-to-end và Docker smoke trong `.github/workflows/ci.yml`.
-- CD publish container images lên GitHub Container Registry từ `.github/workflows/cd.yml`.
-- Tên image chuẩn:
-  - `ghcr.io/jasontm17/wavestream-web`
-  - `ghcr.io/jasontm17/wavestream-api`
+- **CI** (`.github/workflows/ci.yml`): install → lint → typecheck → unit test → build → Playwright E2E → Docker smoke
+- **CD** (`.github/workflows/cd.yml`): publish Docker images lên GHCR khi merge vào `main`
 
-## Luồng Demo Đề Xuất
+Container images:
+- `ghcr.io/jasontm17/wavestream-web`
+- `ghcr.io/jasontm17/wavestream-api`
 
-1. Mở landing page và chỉ ra các rail discovery công khai.
-2. Đăng nhập bằng tài khoản creator và demo persistent player, library cùng creator dashboard.
-3. Mở trang track, minh họa các thao tác like, repost, comment và add-to-playlist.
-4. Vào trang playlist và cho thấy quyền add, reorder, edit và delete của owner.
-5. Đăng nhập bằng tài khoản admin và mở moderation queue để xem target previews.
-6. Mở Mailpit để chứng minh luồng reset mật khẩu chạy end-to-end.
+---
 
-## Tài Liệu Thêm
+## Hướng dẫn Demo
 
-- [Project blurbs cho CV và LinkedIn](./docs/PROJECT-BLURBS.md)
-- [Project blurbs cho CV và LinkedIn - Tiếng Việt](./docs/PROJECT-BLURBS.vi.md)
-- [Project summary](./docs/PROJECT-SUMMARY.md)
-- [Project summary - Tiếng Việt](./docs/PROJECT-SUMMARY.vi.md)
-- [Portfolio case study](./docs/CASE-STUDY.md)
-- [Portfolio case study - Tiếng Việt](./docs/CASE-STUDY.vi.md)
-- [Deployment guide](./docs/DEPLOYMENT.md)
-- [Hướng dẫn triển khai - Tiếng Việt](./docs/DEPLOYMENT.vi.md)
-- [Demo walkthrough](./docs/DEMO-WALKTHROUGH.md)
-- [Demo walkthrough - Tiếng Việt](./docs/DEMO-WALKTHROUGH.vi.md)
+1. Mở trang landing — duyệt discovery rails công khai không cần đăng nhập.
+2. Đăng nhập với tài khoản **Creator** → player cố định, thư viện, creator dashboard.
+3. Mở một bài hát → like, repost, bình luận, thêm vào playlist.
+4. Vào trang playlist → sắp xếp lại bài hát, chỉnh sửa metadata (với tư cách chủ sở hữu).
+5. Đăng nhập với tài khoản **Admin** → hàng đợi kiểm duyệt, xem xét báo cáo, quản lý role.
+6. Mở Mailpit tại `http://localhost:8025` → kiểm tra luồng đặt lại mật khẩu end-to-end.
+
+---
+
+## Giấy phép
+
+MIT — xây dựng cho mục đích học tập và portfolio. Mọi phản hồi và đóng góp đều được chào đón.
