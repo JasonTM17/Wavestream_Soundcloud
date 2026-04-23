@@ -10,7 +10,6 @@ import { UserRole } from "@wavestream/shared";
 import { z } from "zod";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,38 +27,7 @@ import {
   signUp,
   type AuthSession,
 } from "@/lib/auth";
-
-const signInSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-});
-
-const signUpSchema = z.object({
-  displayName: z.string().min(2, "Add a display name."),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters.")
-    .max(24, "Username must be 24 characters or fewer.")
-    .regex(/^[a-z0-9-_.]+$/i, "Use letters, numbers, dash, underscore, or dot only."),
-  email: z.string().email("Enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-  role: z.enum([UserRole.LISTENER, UserRole.CREATOR]),
-});
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
-});
-
-const resetPasswordSchema = z
-  .object({
-    token: z.string().min(1, "Reset token is required."),
-    password: z.string().min(8, "Password must be at least 8 characters."),
-    confirmPassword: z.string().min(8, "Confirm your password."),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
+import { useT } from "@/lib/i18n";
 
 type AuthFormProps = {
   mode: "sign-in" | "sign-up" | "forgot-password" | "reset-password";
@@ -68,29 +36,15 @@ type AuthFormProps = {
   onAuthenticatedSession?: (session: AuthSession) => void;
 };
 
-type SignInValues = z.infer<typeof signInSchema>;
-type SignUpValues = z.infer<typeof signUpSchema>;
-type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
-type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+type SignInValues = { email: string; password: string };
+type SignUpValues = { displayName: string; username: string; email: string; password: string; role: UserRole.LISTENER | UserRole.CREATOR };
+type ForgotPasswordValues = { email: string };
+type ResetPasswordValues = { token: string; password: string; confirmPassword: string };
 
-export function AuthForm({
-  mode,
-  nextPath,
-  resetToken,
-  onAuthenticatedSession,
-}: AuthFormProps) {
-  if (mode === "sign-in") {
-    return <SignInForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
-  }
-
-  if (mode === "sign-up") {
-    return <SignUpForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
-  }
-
-  if (mode === "forgot-password") {
-    return <ForgotPasswordForm nextPath={nextPath} />;
-  }
-
+export function AuthForm({ mode, nextPath, resetToken, onAuthenticatedSession }: AuthFormProps) {
+  if (mode === "sign-in") return <SignInForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
+  if (mode === "sign-up") return <SignUpForm nextPath={nextPath} onAuthenticatedSession={onAuthenticatedSession} />;
+  if (mode === "forgot-password") return <ForgotPasswordForm nextPath={nextPath} />;
   return <ResetPasswordForm nextPath={nextPath} resetToken={resetToken} />;
 }
 
@@ -99,21 +53,11 @@ export function AuthCard({
   description,
   footer,
   children,
-}: React.PropsWithChildren<{
-  title: string;
-  description: string;
-  footer: React.ReactNode;
-}>) {
+}: React.PropsWithChildren<{ title: string; description: string; footer: React.ReactNode }>) {
   return (
-    <Card className="w-full border-none bg-[#181818] shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-      <CardHeader className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <Badge variant="soft">WaveStream Access</Badge>
-          <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#b3b3b3]">
-            Fast access
-          </span>
-        </div>
-        <div className="space-y-2">
+    <Card className="w-full border-none bg-card shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+      <CardHeader className="space-y-3">
+        <div className="space-y-1">
           <CardTitle className="text-2xl">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
@@ -126,190 +70,157 @@ export function AuthCard({
   );
 }
 
-function SignInForm({
-  nextPath,
-  onAuthenticatedSession,
-}: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
+function SignInForm({ nextPath, onAuthenticatedSession }: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
   const router = useRouter();
-  const form = useForm<SignInValues>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: { email: "", password: "" },
+  const t = useT("auth");
+  const schema = z.object({
+    email: z.string().email(t.validEmailRequired),
+    password: z.string().min(8, t.passwordMin),
   });
+  const form = useForm<SignInValues>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
 
   const mutation = useMutation({
     mutationFn: signIn,
     onSuccess: (session) => {
       onAuthenticatedSession?.(session);
-      toast.success("Welcome back to WaveStream.");
+      toast.success(t.welcomeBack);
       router.replace(resolveAuthRedirect(nextPath));
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Something went wrong.");
+      toast.error(error instanceof Error ? error.message : t.validEmailRequired);
     },
   });
 
   return (
     <AuthCard
-      title="Sign in to your studio"
-      description="Continue with your listener or creator account and jump straight back into the live catalog, playlists, and creator tools."
+      title={t.signInTitle}
+      description={t.signInDesc}
       footer={
         <>
-          New here?{" "}
-          <Link
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-            href={buildAuthHref("/sign-up", nextPath)}
-          >
-            Create an account
+          {t.noAccount}{" "}
+          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={buildAuthHref("/sign-up", nextPath)}>
+            {t.createAccount}
           </Link>
           {" | "}
-          <Link
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-            href={buildAuthHref("/forgot-password", nextPath)}
-          >
-            Forgot password?
+          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={buildAuthHref("/forgot-password", nextPath)}>
+            {t.forgotPassword}
           </Link>
         </>
       }
     >
-      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <form className="space-y-5" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="you@studio.com" {...form.register("email")} />
-          {form.formState.errors.email ? (
+          <Label htmlFor="email">{t.emailLabel}</Label>
+          <Input id="email" type="email" placeholder="you@email.com" {...form.register("email")} />
+          {form.formState.errors.email && (
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-          ) : null}
+          )}
         </div>
-
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="password">Password</Label>
-            <Link
-              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              href={buildAuthHref("/forgot-password", nextPath)}
-            >
-              Recovery link
+            <Label htmlFor="password">{t.passwordLabel}</Label>
+            <Link className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={buildAuthHref("/forgot-password", nextPath)}>
+              {t.recoveryLink}
             </Link>
           </div>
-          <Input id="password" type="password" placeholder="********" {...form.register("password")} />
-          {form.formState.errors.password ? (
+          <Input id="password" type="password" placeholder="••••••••" {...form.register("password")} />
+          {form.formState.errors.password && (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-          ) : null}
+          )}
         </div>
-
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Connecting..." : "Sign in"}
+          {mutation.isPending ? t.signingIn : t.signInButton}
         </Button>
       </form>
     </AuthCard>
   );
 }
 
-function SignUpForm({
-  nextPath,
-  onAuthenticatedSession,
-}: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
+function SignUpForm({ nextPath, onAuthenticatedSession }: Pick<AuthFormProps, "nextPath" | "onAuthenticatedSession">) {
   const router = useRouter();
-  const form = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      displayName: "",
-      username: "",
-      email: "",
-      password: "",
-      role: UserRole.LISTENER,
-    },
+  const t = useT("auth");
+  const schema = z.object({
+    displayName: z.string().min(2, t.displayNameMin),
+    username: z.string().min(3, t.usernameMin).max(24, t.usernameMax).regex(/^[a-z0-9-_.]+$/i, t.usernamePattern),
+    email: z.string().email(t.validEmailRequired),
+    password: z.string().min(8, t.passwordMin),
+    role: z.enum([UserRole.LISTENER, UserRole.CREATOR]),
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<SignUpValues>({ resolver: zodResolver(schema) as any, defaultValues: { displayName: "", username: "", email: "", password: "", role: UserRole.LISTENER } });
 
   const mutation = useMutation({
     mutationFn: signUp,
     onSuccess: (session) => {
       onAuthenticatedSession?.(session);
-      toast.success("Account created.");
+      toast.success(t.accountCreated);
       router.replace(resolveAuthRedirect(nextPath));
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Something went wrong.");
+      toast.error(error instanceof Error ? error.message : t.validEmailRequired);
     },
   });
 
   return (
     <AuthCard
-      title="Create your WaveStream profile"
-      description="Join with a listener or creator profile, then start exploring the live public feed right away."
+      title={t.signUpTitle}
+      description={t.signUpDesc}
       footer={
         <>
-          Already have an account?{" "}
-          <Link
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-            href={buildAuthHref("/sign-in", nextPath)}
-          >
-            Sign in
+          {t.alreadyHaveAccount}{" "}
+          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={buildAuthHref("/sign-in", nextPath)}>
+            {t.signInLink}
           </Link>
         </>
       }
     >
-      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <form className="space-y-4" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
         <div className="space-y-2">
-          <Label htmlFor="displayName">Display name</Label>
-          <Input id="displayName" placeholder="Jordan North" {...form.register("displayName")} />
-          {form.formState.errors.displayName ? (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.displayName.message}
-            </p>
-          ) : null}
+          <Label htmlFor="displayName">{t.displayNameLabel}</Label>
+          <Input id="displayName" placeholder="Tên của bạn" {...form.register("displayName")} />
+          {form.formState.errors.displayName && (
+            <p className="text-sm text-destructive">{form.formState.errors.displayName.message}</p>
+          )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input id="username" placeholder="jordan-north" {...form.register("username")} />
-          {form.formState.errors.username ? (
+          <Label htmlFor="username">{t.usernameLabel}</Label>
+          <Input id="username" placeholder="ten-nguoi-dung" {...form.register("username")} />
+          {form.formState.errors.username && (
             <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>
-          ) : null}
+          )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="you@studio.com" {...form.register("email")} />
-          {form.formState.errors.email ? (
+          <Label htmlFor="email">{t.emailLabel}</Label>
+          <Input id="email" type="email" placeholder="you@email.com" {...form.register("email")} />
+          {form.formState.errors.email && (
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-          ) : null}
+          )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" placeholder="********" {...form.register("password")} />
-          {form.formState.errors.password ? (
+          <Label htmlFor="password">{t.passwordLabel}</Label>
+          <Input id="password" type="password" placeholder="••••••••" {...form.register("password")} />
+          {form.formState.errors.password && (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-          ) : null}
+          )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="role">I am joining as</Label>
+          <Label htmlFor="role">{t.roleLabel}</Label>
           <Controller
             control={form.control}
             name="role"
             render={({ field }) => (
-              <Select
-                value={field.value}
-                onValueChange={(value) => field.onChange(value as SignUpValues["role"])}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
+              <Select value={field.value} onValueChange={(v) => field.onChange(v as SignUpValues["role"])}>
+                <SelectTrigger id="role"><SelectValue placeholder={t.rolePlaceholder} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={UserRole.LISTENER}>Listener</SelectItem>
-                  <SelectItem value={UserRole.CREATOR}>Creator</SelectItem>
+                  <SelectItem value={UserRole.LISTENER}>{t.listenerOption}</SelectItem>
+                  <SelectItem value={UserRole.CREATOR}>{t.creatorOption}</SelectItem>
                 </SelectContent>
               </Select>
             )}
           />
-          {form.formState.errors.role ? (
-            <p className="text-sm text-destructive">{form.formState.errors.role.message}</p>
-          ) : null}
         </div>
-
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Creating..." : "Create account"}
+          {mutation.isPending ? t.signingUp : t.signUpButton}
         </Button>
       </form>
     </AuthCard>
@@ -317,158 +228,117 @@ function SignUpForm({
 }
 
 function ForgotPasswordForm({ nextPath }: Pick<AuthFormProps, "nextPath">) {
-  const form = useForm<ForgotPasswordValues>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-  });
+  const t = useT("auth");
+  const schema = z.object({ email: z.string().email(t.validEmailRequired) });
+  const form = useForm<ForgotPasswordValues>({ resolver: zodResolver(schema), defaultValues: { email: "" } });
 
   const mutation = useMutation({
     mutationFn: forgotPassword,
-    onSuccess: () => {
-      toast.success("If the email exists, we sent a recovery link.");
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Something went wrong.");
-    },
+    onSuccess: () => { toast.success(t.forgotSuccessMessage); },
+    onError: (error) => { toast.error(error instanceof Error ? error.message : t.validEmailRequired); },
   });
 
   return (
     <AuthCard
-      title="Reset your password"
-      description="We will send a recovery link to your inbox without revealing whether the address exists."
+      title={t.forgotTitle}
+      description={t.forgotDesc}
       footer={
         <>
-          Remembered it?{" "}
-          <Link
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-            href={buildAuthHref("/sign-in", nextPath)}
-          >
-            Return to sign in
+          {t.remembered}{" "}
+          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={buildAuthHref("/sign-in", nextPath)}>
+            {t.returnToSignIn}
           </Link>
         </>
       }
     >
-      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <form className="space-y-5" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
         <div className="space-y-2">
-          <Label htmlFor="forgot-email">Email</Label>
-          <Input
-            id="forgot-email"
-            type="email"
-            placeholder="you@studio.com"
-            {...form.register("email")}
-          />
-          {form.formState.errors.email ? (
+          <Label htmlFor="forgot-email">{t.emailLabel}</Label>
+          <Input id="forgot-email" type="email" placeholder="you@email.com" {...form.register("email")} />
+          {form.formState.errors.email && (
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-          ) : null}
+          )}
         </div>
-
-        {mutation.isSuccess ? (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-            Check your inbox. If the address exists, you will receive a reset link from WaveStream.
+        {mutation.isSuccess && (
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+            {t.forgotSuccessMessage}
           </div>
-        ) : null}
-
+        )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Sending link..." : "Send recovery link"}
+          {mutation.isPending ? t.sending : t.sendRecovery}
         </Button>
       </form>
     </AuthCard>
   );
 }
 
-function ResetPasswordForm({
-  nextPath,
-  resetToken,
-}: Pick<AuthFormProps, "nextPath" | "resetToken">) {
+function ResetPasswordForm({ nextPath, resetToken }: Pick<AuthFormProps, "nextPath" | "resetToken">) {
   const router = useRouter();
+  const t = useT("auth");
   const resolvedToken = getFirstQueryValue(resetToken) ?? "";
   const hasPrefilledToken = resolvedToken.length > 0;
-  const form = useForm<ResetPasswordValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      token: resolvedToken,
-      password: "",
-      confirmPassword: "",
-    },
-  });
+  const schema = z.object({
+    token: z.string().min(1, t.tokenRequired),
+    password: z.string().min(8, t.passwordMin),
+    confirmPassword: z.string().min(8, t.confirmPasswordMin),
+  }).refine((v) => v.password === v.confirmPassword, { message: t.passwordsNoMatch, path: ["confirmPassword"] });
+  const form = useForm<ResetPasswordValues>({ resolver: zodResolver(schema), defaultValues: { token: resolvedToken, password: "", confirmPassword: "" } });
 
   const mutation = useMutation({
     mutationFn: resetPassword,
     onSuccess: () => {
-      toast.success("Password updated. You can sign in again now.");
+      toast.success(t.passwordUpdated);
       router.replace(buildAuthHref("/sign-in", nextPath));
     },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Something went wrong.");
-    },
+    onError: (error) => { toast.error(error instanceof Error ? error.message : t.validEmailRequired); },
   });
 
   return (
     <AuthCard
-      title="Create a new password"
-      description="Set a strong replacement password, then return to sign in with the same account."
+      title={t.resetTitle}
+      description={t.resetDesc}
       footer={
         <>
-          Need a fresh link?{" "}
-          <Link
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-            href={buildAuthHref("/forgot-password", nextPath)}
-          >
-            Request recovery email
+          {t.needFreshLink}{" "}
+          <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={buildAuthHref("/forgot-password", nextPath)}>
+            {t.requestRecovery}
           </Link>
         </>
       }
     >
-      <form className="space-y-5" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <form className="space-y-4" onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
+        {!hasPrefilledToken && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+            {t.noToken}
+          </div>
+        )}
         {!hasPrefilledToken ? (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-            The reset token was not present in the link. You can paste it below or request a new
-            recovery email.
+          <div className="space-y-2">
+            <Label htmlFor="token">{t.tokenLabel}</Label>
+            <Input id="token" placeholder={t.tokenPlaceholder} {...form.register("token")} />
+            {form.formState.errors.token && (
+              <p className="text-sm text-destructive">{form.formState.errors.token.message}</p>
+            )}
           </div>
         ) : (
           <input type="hidden" {...form.register("token")} />
         )}
-
-        {!hasPrefilledToken ? (
-          <div className="space-y-2">
-            <Label htmlFor="token">Reset token</Label>
-            <Input id="token" placeholder="Paste token from your email" {...form.register("token")} />
-            {form.formState.errors.token ? (
-              <p className="text-sm text-destructive">{form.formState.errors.token.message}</p>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className="space-y-2">
-          <Label htmlFor="new-password">New password</Label>
-          <Input
-            id="new-password"
-            type="password"
-            placeholder="********"
-            {...form.register("password")}
-          />
-          {form.formState.errors.password ? (
+          <Label htmlFor="new-password">{t.newPasswordLabel}</Label>
+          <Input id="new-password" type="password" placeholder="••••••••" {...form.register("password")} />
+          {form.formState.errors.password && (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-          ) : null}
+          )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="confirm-password">Confirm password</Label>
-          <Input
-            id="confirm-password"
-            type="password"
-            placeholder="********"
-            {...form.register("confirmPassword")}
-          />
-          {form.formState.errors.confirmPassword ? (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.confirmPassword.message}
-            </p>
-          ) : null}
+          <Label htmlFor="confirm-password">{t.confirmPasswordLabel}</Label>
+          <Input id="confirm-password" type="password" placeholder="••••••••" {...form.register("confirmPassword")} />
+          {form.formState.errors.confirmPassword && (
+            <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+          )}
         </div>
-
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Updating..." : "Update password"}
+          {mutation.isPending ? t.updating : t.updatePassword}
         </Button>
       </form>
     </AuthCard>
